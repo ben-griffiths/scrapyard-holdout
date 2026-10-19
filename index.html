@@ -1926,7 +1926,7 @@ function trayTick(){
   if($('trayInfo').innerHTML!==info)$('trayInfo').innerHTML=info;
 }
 $('trayRow').addEventListener('click',e=>{const el=e.target.closest('.tile');if(!el)return;const k=el.dataset.k;
-  if(!unlocked(k)){say(`${DEF[k].n} unlocks at ${TIER[DEF[k].tier]} survivors`,true);return;}setTool(tool===k?'hand':k);});
+  if(!unlocked(k)){say(`${DEF[k].n} unlocks at ${TIER[DEF[k].tier]} survivors`,true);return;}openCat=null;trayHover=null;setTool(tool===k?'hand':k);});
 $('trayRow').addEventListener('pointerover',e=>{const el=e.target.closest('.tile');trayHover=el?el.dataset.k:null;});
 $('trayRow').addEventListener('pointerleave',()=>{trayHover=null;});
 
