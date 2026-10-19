@@ -138,6 +138,9 @@ button:focus-visible{outline:2px solid var(--sodium);outline-offset:2px}
 .dockwrap .float{position:relative}
 .dock{display:flex;align-items:stretch;gap:2px;padding:4px;max-width:100%;overflow-x:auto;scrollbar-width:none}
 .dock::-webkit-scrollbar{display:none}
+.dock.bleed{--bl:max(10px,env(safe-area-inset-left,0px));--br:max(10px,env(safe-area-inset-right,0px));align-self:stretch;max-width:none;
+  margin:0 calc(-1 * var(--br)) 0 calc(-1 * var(--bl));padding-left:calc(var(--bl) + 4px);padding-right:0;border-left:0;border-right:0;border-radius:0}
+.dock.bleed::after{content:'';flex:none;width:calc(var(--br) + 4px)}
 .dock .sep{width:1px;background:rgba(255,250,230,.12);margin:4px 4px;flex:none}
 .db{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:64px;padding:7px 8px 5px;background:none;border:1px solid transparent;border-radius:5px;cursor:pointer;flex:none}
 .db:hover{background:rgba(255,250,230,.08)}
@@ -2134,8 +2137,11 @@ function buildDock(){
     h+=`<button class="db${openCat===c?' open':''}${cur&&openCat!==c?' on':''}" data-c="${c}" title="${c} (${i+4})">${svg(c)}<span>${c==='Automation'?'Machines':c}</span><kbd>${i+4}</kbd></button>`;});
   if(recent.length){h+='<i class="sep"></i>';for(const k of recent)h+=`<button class="db${tool===k?' on':''}" data-t="${k}" title="${DEF[k].n}"><img src="${iconURL(k)}" alt="" width="24" height="24"><span>${DEF[k].n.split(' ').pop()}</span></button>`;}
   h+=`<i class="sep"></i><button class="db${$('drawer').hidden?'':' open'}" data-d="1" title="Crew, log and guide (Tab)">${svg('crew')}<span>Crew</span><kbd>Tab</kbd></button>`;
-  $('dock').innerHTML=h;
+  $('dock').innerHTML=h;fitDock();
 }
+// stretch the bar edge-to-edge only when it can't fit; otherwise it floats as a centred pill
+function fitDock(){const d=$('dock'),w=$('dockwrap'),sl=d.scrollLeft;d.classList.remove('bleed');d.classList.toggle('bleed',d.scrollWidth>w.clientWidth+1);d.scrollLeft=sl;}
+window.addEventListener('resize',()=>fitDock());
 $('dock').addEventListener('click',e=>{const el=e.target.closest('.db');if(!el)return;SFX('click');
   if(el.dataset.t){const t=el.dataset.t;if(DEF[t]&&!unlocked(t)){say(`${DEF[t].n} unlocks at ${TIER[DEF[t].tier]} survivors`,true);return;}setTool(tool===t&&t!=='hand'?'hand':t);}
   else if(el.dataset.c)toggleCat(el.dataset.c);
