@@ -473,7 +473,8 @@ function canPlace(type,x,y){
   return '';
 }
 function place(type,x,y,dir){
-  const why=canPlace(type,x,y);if(why){say(why,true);return null;}
+  const why=canPlace(type,x,y);if(why){say(why,true);SFX('error');return null;}
+  SFX('place',x+.5,y+.5);
   const D=DEF[type],old=upgTarget(type,x,y);
   if(old){old.upg={to:type,need:{...D.cost},work:workAmt(type)};return old;}
   const b={id:S.nid++,type,x,y,dir:D.dir?dir:0,hp:Math.ceil(D.hp*.25),inb:{},outb:[],timer:0,item:null,rr:0,st:'frame',cd:0,ammo:0,ang:-Math.PI/2,pool:0,frame:true,work:workAmt(type),res:null,need:{...D.cost}};
@@ -508,13 +509,13 @@ function destroy(b,byZombie){
   S.fx.push({k:'puff',x:ctr(b)[0],y:ctr(b)[1],life:.6,max:.6,big:1});
   if(S.sel===b.id)S.sel=null;
   if(b.type==='hq'){gameOver();return;}
-  if(byZombie&&!b.frame&&b.type!=='trap'&&b.type!=='belt'&&b.type!=='wire')MUS.sting();
+  if(byZombie&&!b.frame&&b.type!=='trap'&&b.type!=='belt'&&b.type!=='wire'){MUS.sting();SFX('crash',ctr(b)[0],ctr(b)[1]);}
   if(byZombie&&!b.frame&&b.type!=='trap'&&b.type!=='belt')log(`Zombies wrecked a ${DEF[b.type].n}.${b.salv?` Salvaged ${b.salv.replace(/\+/g,'').trim()}.`:''} A rebuild blueprint is down.`,'bad');
 }
 function demolish(b){
   if(!b||b.type==='hq')return;
   if(b.res){const p=S.pawns.find(p=>p.id===b.res);if(p)dropJob(p);}
-  reclaim(b,1);
+  reclaim(b,1);SFX('demolish',ctr(b)[0],ctr(b)[1]);
   destroy(b,false);
 }
 
@@ -560,7 +561,7 @@ function updateB(b,dt){
       else tz=nearestZ(cx,cy,G.r);
       if(tz){b.ang=Math.atan2(tz.y-cy,tz.x-cx);
         if(b.cd<=0){let ok=false;if(b.ammo>=G.am){b.ammo-=G.am;ok=true;}else if(b.ammo+S.stock.ammo>=G.am){S.stock.ammo-=G.am-b.ammo;b.ammo=0;ok=true;}
-          if(ok){b.cd=G.cd;b.st='ok';
+          if(ok){b.cd=G.cd;b.st='ok';SFX(b.type==='sniper'?'sniper':b.type==='mortar'?'mortarFire':'gun',cx,cy);
             if(G.splash){S.shells=S.shells||[];S.shells.push({x:tz.x,y:tz.y,t:.7,fx:cx,fy:cy});S.fx.push({k:'shell',x1:cx,y1:cy,x2:tz.x,y2:tz.y,life:.7,max:.7});}
             else{hurt(tz,G.dmg);let ex=tz.x,ey=tz.y;
               if(G.pierce){const dx=tz.x-cx,dy=tz.y-cy,L=Math.hypot(dx,dy)||1,ux=dx/L,uy=dy/L;let n=0;
@@ -568,13 +569,13 @@ function updateB(b,dt){
                 for(const o of behind){if(n>=G.pierce)break;hurt(o.z,G.dmg*.6);n++;ex=o.z.x;ey=o.z.y;}
                 S.fx.push({k:'float',x:tz.x,y:tz.y-.3,txt:`-${Math.round(G.dmg*(tz.lit?1.25:1))}`,c:'#ff8f78',life:.8,max:.8});S.fx.push({k:'hit',x:tz.x,y:tz.y,life:.25,max:.25});}
               S.fx.push({k:'tracer',x1:cx,y1:cy,x2:G.pierce?ex+(ex-cx)*.15:tz.x,y2:G.pierce?ey+(ey-cy)*.15:tz.y,life:G.tough?.3:.12,max:G.tough?.3:.12,tur:1,big:G.tough});}}
-          else{b.st='noammo';if(S.dryWarn!==S.day){S.dryWarn=S.day;log(`A ${DEF[b.type].n} is out of ammo and has stopped firing.`,'bad');}}}}
+          else{b.st='noammo';SFX('empty',cx,cy);if(S.dryWarn!==S.day){S.dryWarn=S.day;log(`A ${DEF[b.type].n} is out of ammo and has stopped firing.`,'bad');}}}}
       else b.st=(b.ammo>=G.am||b.ammo+S.stock.ammo>=G.am)?'ok':'noammo';break;}
     case 'flamer':{const cx=b.x+.5,cy=b.y+.5;let hit=0;
       const near=S.z.filter(z=>Math.hypot(z.x-cx,z.y-cy)<=2.5);
       if(near.length){b.burn=(b.burn||0)-dt;
         if(b.burn<=0){if((b.fuel||0)>0){b.fuel--;b.burn=2;}else if(S.stock.wood>0){S.stock.wood--;b.burn=2;}else{b.st='nofuel';break;}}
-        b.st='ok';const t=near[0];b.ang=Math.atan2(t.y-cy,t.x-cx);for(const z of near)hurt(z,22*dt);
+        b.st='ok';SFX('flame',cx,cy);const t=near[0];b.ang=Math.atan2(t.y-cy,t.x-cx);for(const z of near)hurt(z,22*dt);
         if(Math.random()<dt*25)S.fx.push({k:'flame',x:cx+Math.cos(b.ang)*(.4+Math.random()*1.8)+(Math.random()-.5)*.8,y:cy+Math.sin(b.ang)*(.4+Math.random()*1.8)+(Math.random()-.5)*.8,life:.35,max:.35});}
       else b.st=((b.fuel||0)>0||S.stock.wood>0||b.burn>0)?'ok':'nofuel';break;}
     case 'infirmary':{for(const p of S.pawns)if(p.hp<100&&Math.hypot(p.x-(b.x+.5),p.y-(b.y+.5))<=3)p.hp=Math.min(100,p.hp+10*dt);b.st='ok';break;}
@@ -587,11 +588,11 @@ function updateB(b,dt){
       break;}
   }
   if(D.prod){
-    if(b.outb.length<4){b.timer+=dt*(b.rate||1);if(b.timer>=D.time){b.timer-=D.time;b.outb.push(D.prod);}b.st='ok';}else b.st='block';
+    if(b.outb.length<4){b.timer+=dt*(b.rate||1);if(b.timer>=D.time){b.timer-=D.time;b.outb.push(D.prod);if(b.type==='saw')SFX('chop',b.x+.5,b.y+.5);else if(b.type==='picker')SFX('clank',b.x+.5,b.y+.5);}b.st='ok';}else b.st='block';
   }
   if(D.auto){const R=D.rec;
     if(b.timer>0){b.timer-=dt;b.st='ok';
-      if(b.timer<=0){b.timer=0;for(let k=0;k<R.k;k++)b.outb.push(R.out);if(R.out==='meal')S.stats.meals+=R.k;if(R.out==='ammo')S.stats.ammo+=R.k;}}
+      if(b.timer<=0){b.timer=0;SFX(R.out==='plank'?'craftPlank':R.out==='plate'?'craftPlate':R.out==='ammo'?'craftAmmo':'tick',b.x+.5,b.y+.5);for(let k=0;k<R.k;k++)b.outb.push(R.out);if(R.out==='meal')S.stats.meals+=R.k;if(R.out==='ammo')S.stats.ammo+=R.k;}}
     else{const room=b.outb.length+R.k<=Math.max(4,R.k*2);
       if(!room)b.st='block';
       else if(Object.entries(R.in).every(([k,n])=>(b.inb[k]||0)>=n)){for(const[k,n] of Object.entries(R.in))b.inb[k]-=n;b.timer=R.time;b.st='ok';}
@@ -655,7 +656,7 @@ function findJob(p){
 function deliver(p,dt){
   const sp=nearestStore(p.x,p.y);if(!sp){p.act='No storage to carry to';return;}
   const c=ctr(sp);p.act=`Carrying ${ITEMS[p.carry.t].n.toLowerCase()} to ${DEF[sp.type].n}`;
-  if(moveTo(p,c[0],c[1],.5+(sp.w||1)/2,dt)){S.stock[p.carry.t]+=p.carry.n;S.stats.hauled+=p.carry.n;
+  if(moveTo(p,c[0],c[1],.5+(sp.w||1)/2,dt)){SFX('drop',p.x,p.y);S.stock[p.carry.t]+=p.carry.n;S.stats.hauled+=p.carry.n;
     S.fx.push({k:'float',x:p.x,y:p.y-.4,txt:`+${p.carry.n} ${ITEMS[p.carry.t].n}`,c:ITEMS[p.carry.t].c,life:.9,max:.9});p.carry=null;release(p);p.job=null;}
 }
 function runJob(p,dt){
@@ -673,15 +674,15 @@ function runJob(p,dt){
         if(moveTo(p,c[0],c[1],.55+(b.w||1)/2,dt)){for(const k in p.carry.mat)nd[k]-=p.carry.mat[k];p.carry=null;
           if(needLeft(b)===0)j.st='build';else{release(p);p.job=null;}}return;}
       if((b.frame||b.upg)&&needLeft(b)>0){release(p);p.job=null;return;}
-      if(b.upg){if(moveTo(p,c[0],c[1],.55+(b.w||1)/2,dt)){p.act=`Upgrading to ${ND.n}`;b.upg.work-=dt;
+      if(b.upg){if(moveTo(p,c[0],c[1],.55+(b.w||1)/2,dt)){p.act=`Upgrading to ${ND.n}`;b.upg.work-=dt;if((j.sfxT=(j.sfxT||0)-dt)<=0){j.sfxT=.38;SFX('hammer',p.x,p.y);}
           if(b.upg.work<=0){const oc=DEF[b.type].cost,got=[];for(const k in oc){S.stock[k]+=oc[k];got.push(`+${oc[k]} ${ITEMS[k].n}`);}
             S.fx.push({k:'float',x:c[0],y:c[1]-.2,txt:got.join(' '),c:'#ebe5cf',life:1.4,max:1.4});
-            b.type=b.upg.to;b.hp=DEF[b.type].hp;delete b.upg;b.st='idle';S.fx.push({k:'puff',x:c[0],y:c[1],life:.35,max:.35});ctxKey='';release(p);p.job=null;}}
+            b.type=b.upg.to;b.hp=DEF[b.type].hp;delete b.upg;SFX('built',c[0],c[1]);b.st='idle';S.fx.push({k:'puff',x:c[0],y:c[1],life:.35,max:.35});ctxKey='';release(p);p.job=null;}}
         else p.act=`Going to upgrade a ${D.n}`;break;}
       if(moveTo(p,c[0],c[1],.55+(b.w||1)/2,dt)){
-        if(b.frame){p.act=`Building ${D.n}`;b.work-=dt;b.hp=Math.min(D.hp,b.hp+D.hp*.75/workAmt(b.type)*dt);
-          if(b.work<=0){b.frame=false;b.hp=D.hp;b.st='idle';S.fx.push({k:'puff',x:c[0],y:c[1],life:.35,max:.35});release(p);p.job=null;}}
-        else{p.act=`Repairing ${D.n}`;b.hp=Math.min(D.hp,b.hp+25*dt);}
+        if(b.frame){p.act=`Building ${D.n}`;b.work-=dt;if((j.sfxT=(j.sfxT||0)-dt)<=0){j.sfxT=.42;SFX('hammer',p.x,p.y);}b.hp=Math.min(D.hp,b.hp+D.hp*.75/workAmt(b.type)*dt);
+          if(b.work<=0){b.frame=false;b.hp=D.hp;b.st='idle';SFX('built',c[0],c[1]);S.fx.push({k:'puff',x:c[0],y:c[1],life:.35,max:.35});release(p);p.job=null;}}
+        else{p.act=`Repairing ${D.n}`;if((j.sfxT=(j.sfxT||0)-dt)<=0){j.sfxT=.5;SFX('hammer',p.x,p.y);}b.hp=Math.min(D.hp,b.hp+25*dt);}
       }else p.act=`Going to ${b.frame?'build':'repair'} ${D.n}`;break;}
     case 'fuel':{const b=byId(j.tid);if(!b||b.frame){dropJob(p);return;}
       if(j.st==='fetch'){const sp=nearestStore(p.x,p.y);if(!sp){release(p);p.job=null;return;}const sc=ctr(sp);p.act='Fetching wood for the Generator';
@@ -708,7 +709,7 @@ function runJob(p,dt){
       if(j.st==='ret'){deliver(p,dt);return;}
       if(S.des[j.tile]!==(j.item==='wood'?'chop':'scav')){release(p);p.job=null;return;}
       const tx=j.tile%W+.5,ty=Math.floor(j.tile/W)+.5;
-      if(moveTo(p,tx,ty,.8,dt)){p.act=j.item==='wood'?'Chopping wood':'Scavenging scrap';p.face=Math.atan2(ty-p.y,tx-p.x);j.w+=dt;
+      if(moveTo(p,tx,ty,.8,dt)){p.act=j.item==='wood'?'Chopping wood':'Scavenging scrap';if((j.sfxT=(j.sfxT||0)-dt)<=0){j.sfxT=.55;SFX(j.item==='wood'?'chop':'clank',p.x,p.y);}p.face=Math.atan2(ty-p.y,tx-p.x);j.w+=dt;
         if(j.w>=2.4){p.carry={t:j.item,n:2};release(p);j.st='ret';}}
       else p.act=j.item==='wood'?'Walking to the trees':'Walking to the scrap heap';break;}
     case 'craft':{const b=byId(j.tid);const D=b&&DEF[b.type];
@@ -719,7 +720,7 @@ function runJob(p,dt){
           let n=1;while(n<3&&Object.entries(R.in).every(([k,c])=>S.stock[k]>=c*(n+1))&&S.stock[R.out]+R.k*n<b.target)n++;j.n=n;
           for(const[k,c] of Object.entries(R.in))S.stock[k]-=c*n;const k0=Object.keys(R.in)[0];p.carry={t:k0,n:R.in[k0]*n,inputs:R.in,batch:n};j.st='go';}return;}
       if(j.st==='go'){const c=ctr(b);p.act=`Heading to the ${D.n}`;if(moveTo(p,c[0],c[1],.9,dt))j.st='work';return;}
-      if(j.st==='work'){const c=ctr(b);p.face=Math.atan2(c[1]-p.y,c[0]-p.x);p.act=`${R.out==='meal'?'Cooking':'Crafting'} at the ${D.n}`;const need=R.time*1.2*(j.n||1);j.w+=dt;b.prog=j.w/need;
+      if(j.st==='work'){const c=ctr(b);p.face=Math.atan2(c[1]-p.y,c[0]-p.x);p.act=`${R.out==='meal'?'Cooking':'Crafting'} at the ${D.n}`;if((j.sfxT=(j.sfxT||0)-dt)<=0){j.sfxT=R.out==='meal'?.7:.45;SFX(R.out==='meal'?'craftMeal':R.out==='plank'?'craftPlank':R.out==='plate'?'craftPlate':'craftAmmo',p.x,p.y);}const need=R.time*1.2*(j.n||1);j.w+=dt;b.prog=j.w/need;
         if(j.w>=need){const out=R.k*(j.n||1);p.carry={t:R.out,n:out};if(R.out==='meal')S.stats.meals+=out;if(R.out==='ammo')S.stats.ammo+=out;release(p);j.st='ret';}return;}
       if(j.st==='ret')deliver(p,dt);break;}
     case 'wander':{p.act='Idle';j.t-=dt;if(moveTo(p,j.x,j.y,.1,dt*.5)||j.t<=0)p.job=null;break;}
@@ -737,7 +738,7 @@ function updatePawn(p,dt,idx,n){
     const rng=(p.up?7:5.5)+crewRange(),z=nearestZ(p.x,p.y,rng);
     if(there||z){
       if(z){p.face=Math.atan2(z.y-p.y,z.x-p.x);p.act=p.up?'Shooting from the watchtower':'Shooting';
-        if(p.cd<=0){const am=S.stock.ammo>0;if(am)S.stock.ammo--;hurt(z,(am?13:6)*crewMult()*(p.up?1.5:1));p.cd=1.05;S.fx.push({k:'tracer',x1:p.x,y1:p.y,x2:z.x,y2:z.y,life:.08,max:.08,hq:1});}}
+        if(p.cd<=0){SFX('rifle',p.x,p.y);const am=S.stock.ammo>0;if(am)S.stock.ammo--;hurt(z,(am?13:6)*crewMult()*(p.up?1.5:1));p.cd=1.05;S.fx.push({k:'tracer',x1:p.x,y1:p.y,x2:z.x,y2:z.y,life:.08,max:.08,hq:1});}}
       else p.act=`On watch at ${where}`;}
     else p.act=`Running to ${where}`;
     return;
@@ -768,10 +769,10 @@ function spawnZombie(){
 function updateZ(dt){
   const hx=S.hq.x+1,hy=S.hq.y+1,dark=darkness()>.25,floods=dark?S.b.filter(b=>b.type==='flood'&&!b.frame):[];
   if(S.shells)for(let i=S.shells.length-1;i>=0;i--){const sh=S.shells[i];sh.t-=dt;if(sh.t>0)continue;S.shells.splice(i,1);
-    for(const z of S.z)if(Math.hypot(z.x-sh.x,z.y-sh.y)<=1.5)hurt(z,40);S.fx.push({k:'boom',x:sh.x,y:sh.y,life:.45,max:.45});}
+    SFX('boom',sh.x,sh.y);for(const z of S.z)if(Math.hypot(z.x-sh.x,z.y-sh.y)<=1.5)hurt(z,40);S.fx.push({k:'boom',x:sh.x,y:sh.y,life:.45,max:.45});}
   for(let i=S.z.length-1;i>=0;i--){const z=S.z[i];
     z.lit=floods.some(f=>Math.hypot(f.x+.5-z.x,f.y+.5-z.y)<=5);let slow=z.lit?.7:1;
-    const on=bAt(Math.floor(z.x),Math.floor(z.y));if(on&&on.type==='wire'&&!on.frame){slow*=.4;hurt(z,4*dt);on.hp-=.6*dt;if(on.hp<=0)destroy(on,true);}
+    const on=bAt(Math.floor(z.x),Math.floor(z.y));if(on&&on.type==='wire'&&!on.frame){slow*=.4;SFX('shred',z.x,z.y);hurt(z,4*dt);on.hp-=.6*dt;if(on.hp<=0)destroy(on,true);}
     if(!S.night){// dawn: retreat to the nearest map edge, then fade into the treeline
       if(!z.flee){z.flee=1;z.fa=1;z.ft=0;const e=[[z.x,-1.5],[W+1.5,z.y],[z.x,H+1.5],[-1.5,z.y]],dd=[z.y,W-z.x,H-z.y,z.x],k=dd.indexOf(Math.min(...dd));
         z.tx=e[k][0]+(Math.random()-.5)*4;z.ty=e[k][1];z.biting=false;z.fl=8+Math.random()*6;}
@@ -783,22 +784,23 @@ function updateZ(dt){
       if(off||z.ft>(z.fl||10)||(z.stuck||0)>1.2)z.fading=1;
       if(z.fading){z.fa-=dt*1.4;if(Math.random()<dt*14)S.fx.push({k:'dust',x:z.x+(Math.random()-.5)*.6,y:z.y+(Math.random()-.5)*.6,life:.9,max:.9,r:Math.random()});}
       const h2=bAt(Math.floor(z.x),Math.floor(z.y));if(h2&&h2.type==='trap'&&!h2.frame){hurt(z,20*dt);h2.hp-=1.5*dt;if(h2.hp<=0)destroy(h2,true);}
-      if(z.hp<=0){S.z.splice(i,1);S.stats.kills++;S.fx.push({k:'splat',x:z.x,y:z.y,life:25,max:25,r:Math.random()});continue;}
+      if(z.hp<=0){S.z.splice(i,1);S.stats.kills++;SFX('splat',z.x,z.y);S.fx.push({k:'splat',x:z.x,y:z.y,life:25,max:25,r:Math.random()});continue;}
       if(z.fa<=0){S.z.splice(i,1);S.fx.push({k:'dust',x:z.x,y:z.y,life:1.2,max:1.2,r:Math.random(),big:1});}
       continue;}
     let tp=null,td=.85;for(const p of S.pawns){if(p.up)continue;const d=Math.hypot(p.x-z.x,p.y-z.y);if(d<td){td=d;tp=p;}}
-    if(tp){z.biting=true;z.ang=Math.atan2(tp.y-z.y,tp.x-z.x);tp.hp-=9*dt;if(tp.hp<=0){killPawn(tp);if(S.over)return;}}
+    if(Math.random()<dt*.07)SFX('groan',z.x,z.y);
+    if(tp){z.biting=true;SFX('bite',z.x,z.y);z.ang=Math.atan2(tp.y-z.y,tp.x-z.x);tp.hp-=9*dt;if(tp.hp<=0){killPawn(tp);if(S.over)return;}}
     else{
       let dx=hx-z.x,dy=hy-z.y;const d=Math.hypot(dx,dy)||1;dx/=d;dy/=d;
       const wob=Math.sin(S.clock*1.1+z.w)*.4*Math.min(1,d/3);
       const mx=dx-dy*wob,my=dy+dx*wob;z.ang=Math.atan2(my,mx);
       const nx=z.x+mx*z.sp*slow*dt,ny=z.y+my*z.sp*slow*dt;
       const b=bAt(Math.floor(nx),Math.floor(ny));
-      if(b&&!b.frame&&!DEF[b.type].walk){b.hp-=10*dt;z.biting=true;if(b.hp<=0){destroy(b,true);if(S.over)return;}}
+      if(b&&!b.frame&&!DEF[b.type].walk){b.hp-=10*dt;z.biting=true;SFX('thud',z.x,z.y);if(b.hp<=0){destroy(b,true);if(S.over)return;}}
       else{z.x=nx;z.y=ny;z.biting=false;}}
     const here=bAt(Math.floor(z.x),Math.floor(z.y));
-    if(here&&here.type==='trap'&&!here.frame){hurt(z,20*dt);here.hp-=1.5*dt;if(here.hp<=0)destroy(here,true);}
-    if(z.hp<=0){S.z.splice(i,1);S.stats.kills++;S.fx.push({k:'splat',x:z.x,y:z.y,life:25,max:25,r:Math.random()});}
+    if(here&&here.type==='trap'&&!here.frame){hurt(z,20*dt);SFX('shred',z.x,z.y);here.hp-=1.5*dt;if(here.hp<=0)destroy(here,true);}
+    if(z.hp<=0){S.z.splice(i,1);S.stats.kills++;SFX('splat',z.x,z.y);S.fx.push({k:'splat',x:z.x,y:z.y,life:25,max:25,r:Math.random()});}
   }
 }
 function cycle(dt){
@@ -826,7 +828,7 @@ function dawn(){
     else{const a=Math.min(free,cap),names=[];
       for(let k=0;k<a;k++){const side=Math.floor(Math.random()*4),r=Math.random();
         const x=side===1?W-.5:side===3?.5:r*W,y=side===0?.5:side===2?H-.5:r*H;names.push(mkPawn(x,y).nm);}
-      S.peak=Math.max(S.peak,S.pawns.length);log(`Dawn, day ${S.day}. ${names.join(' and ')} ${a>1?'have':'has'} joined the camp.`,'good');}}
+      SFX('arrive');S.peak=Math.max(S.peak,S.pawns.length);log(`Dawn, day ${S.day}. ${names.join(' and ')} ${a>1?'have':'has'} joined the camp.`,'good');}}
   for(let t=2;t<TIER.length;t++)if(S.peak>=TIER[t]&&S.tierSeen<t){S.tierSeen=t;
     log(`Unlocked: ${Object.keys(DEF).filter(k=>DEF[k].tier===t).map(k=>DEF[k].n).join(', ')}.`,'good');}
   save();
@@ -854,7 +856,7 @@ function gridTick(dt){
     const wantGen=dem>other||charge<cap-1;let gen=0;
     for(const g of N.gens){g.run=false;if(!wantGen){g.st='idle';continue;}
       if((g.burnT||0)<=0){if((g.fuel||0)>0){g.fuel--;g.burnT=5;}}
-      if((g.burnT||0)>0){g.burnT-=dt;g.run=true;g.st='ok';gen+=10;}else g.st='nofuel';}
+      if((g.burnT||0)>0){g.burnT-=dt;g.run=true;SFX('chug',g.x+.5,g.y+.5);g.st='ok';gen+=10;}else g.st='nofuel';}
     const sup=other+gen;let ratio=1;
     if(sup>=dem){let spare=(sup-dem)*dt;for(const b of N.bats){const take=Math.min(spare,400-b.charge);b.charge+=take;spare-=take;}}
     else{let need=(dem-sup)*dt,got=0;for(const b of N.bats){const take=Math.min(need-got,b.charge);b.charge-=take;got+=take;}ratio=dem>0?(sup+got/dt)/dem:1;}
@@ -1848,7 +1850,7 @@ function applyRect(k,a,b){
   if(!tiles.length){say(k==='chop'?'No trees in that box':'No scrap heaps in that box',true);return;}
   const remove=tiles.every(i=>S.des[i]===k);
   for(const i of tiles){if(remove)delete S.des[i];else S.des[i]=k;}
-  say(`${remove?'Cancelled':'Marked'} ${tiles.length} ${k==='chop'?'tree':'scrap'} tile${tiles.length>1?'s':''}`,false);
+  SFX('mark');say(`${remove?'Cancelled':'Marked'} ${tiles.length} ${k==='chop'?'tree':'scrap'} tile${tiles.length>1?'s':''}`,false);
 }
 function endPtr(e){
   if(drag&&!pinch&&!S.over){
@@ -1954,12 +1956,65 @@ const MUS=(()=>{let ac=null,master,music,dayG,nightG,sfx,started=false,muted=fal
     [45,46,52].forEach(m=>{const o=ac.createOscillator(),f=ac.createBiquadFilter(),g=ac.createGain();o.type='sawtooth';o.frequency.value=N(m);
       f.type='lowpass';f.frequency.setValueAtTime(1800,t);f.frequency.exponentialRampToValueAtTime(180,t+.8);g.gain.setValueAtTime(.11,t);g.gain.exponentialRampToValueAtTime(.0001,t+1);
       o.connect(f);f.connect(g);g.connect(sfx);o.start(t);o.stop(t+1.05);});}
+  /* --- sound effects --- */
+  const last={},GAP={chop:90,clank:90,hammer:80,built:60,craftPlank:140,craftMeal:220,craftPlate:120,craftAmmo:90,drop:80,gun:45,sniper:120,rifle:55,mortarFire:150,boom:90,
+    flame:160,groan:650,bite:160,thud:130,splat:60,shred:120,crash:150,place:35,error:250,demolish:60,mark:80,click:30,arrive:300,empty:500,chug:420,tick:140};
+  let burst=0,burstT=0;
+  function out(t,x,y,big){const g=ac.createGain();let vol=1,pan=0;
+    if(x!==undefined){const sx=(x*T-cam.x)*cam.z,sy=(y*T-cam.y)*cam.z,m=big?600:220;
+      if(sx<-m||sy<-m||sx>cw+m||sy>ch+m)return null;
+      const off=Math.max(0,-sx,-sy,sx-cw,sy-ch);vol=off>0?Math.max(.15,1-off/m):1;pan=Math.max(-1,Math.min(1,(sx-cw/2)/(cw/2)))*.7;vol*=Math.min(1.2,.65+cam.z*.35);}
+    g.gain.value=vol;if(ac.createStereoPanner){const p=ac.createStereoPanner();p.pan.value=pan;g.connect(p);p.connect(sfx);}else g.connect(sfx);return g;}
+  function nz(t,dest,{f=1000,q=1,type='bandpass',dur=.1,v=.2,f2=null,a=.002,off=0}){const s2=ac.createBufferSource(),fl=ac.createBiquadFilter(),g=ac.createGain();s2.buffer=noise();
+    fl.type=type;fl.frequency.setValueAtTime(f,t);if(f2)fl.frequency.exponentialRampToValueAtTime(f2,t+dur);fl.Q.value=q;
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+a);g.gain.exponentialRampToValueAtTime(.0001,t+dur);s2.connect(fl);fl.connect(g);g.connect(dest);s2.start(t,off||Math.random()*.6);s2.stop(t+dur+.02);}
+  function tn(t,dest,{f=440,f2=null,type='sine',dur=.1,v=.2,a=.002,vib=0}){const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+dur);
+    if(vib){const l=ac.createOscillator(),lg=ac.createGain();l.frequency.value=vib;lg.gain.value=f*.04;l.connect(lg);lg.connect(o.frequency);l.start(t);l.stop(t+dur+.02);}
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+a);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g);g.connect(dest);o.start(t);o.stop(t+dur+.02);}
+  const R=(a,b)=>a+Math.random()*(b-a);
+  const FX={
+    chop:(t,d)=>{nz(t,d,{f:R(800,1100),q:3,dur:.08,v:.35});tn(t,d,{f:180,f2:90,dur:.07,v:.18});},
+    clank:(t,d)=>{tn(t,d,{f:R(1100,1400),type:'square',dur:.12,v:.05});tn(t,d,{f:R(1600,1900),dur:.18,v:.06});nz(t,d,{f:4000,type:'highpass',dur:.05,v:.1});},
+    hammer:(t,d)=>{tn(t,d,{f:R(200,240),f2:110,type:'triangle',dur:.06,v:.25});nz(t,d,{f:2200,q:2,dur:.03,v:.14});},
+    built:(t,d)=>{tn(t,d,{f:660,dur:.18,v:.09});tn(t+.08,d,{f:990,dur:.3,v:.09});},
+    craftPlank:(t,d)=>{nz(t,d,{f:1300,f2:2200,q:1.5,dur:.2,v:.16,a:.03});},
+    craftMeal:(t,d)=>{nz(t,d,{f:4500,type:'highpass',dur:.35,v:.05,a:.05});},
+    craftPlate:(t,d)=>{tn(t,d,{f:R(1300,1500),type:'square',dur:.09,v:.04});tn(t,d,{f:2600,dur:.25,v:.04});},
+    craftAmmo:(t,d)=>{tn(t,d,{f:2100,type:'square',dur:.025,v:.05});},
+    drop:(t,d)=>{tn(t,d,{f:130,f2:70,dur:.1,v:.22});nz(t,d,{f:600,type:'lowpass',dur:.06,v:.12});},
+    gun:(t,d)=>{nz(t,d,{f:1800,q:.7,dur:.09,v:.32});tn(t,d,{f:170,f2:60,dur:.08,v:.2});},
+    sniper:(t,d)=>{nz(t,d,{f:1100,q:.6,dur:.32,v:.5,f2:300});tn(t,d,{f:95,f2:38,dur:.3,v:.35});},
+    rifle:(t,d)=>{nz(t,d,{f:R(2200,2700),q:.8,dur:.06,v:.2});tn(t,d,{f:220,f2:90,dur:.05,v:.1});},
+    mortarFire:(t,d)=>{tn(t,d,{f:85,f2:38,dur:.28,v:.5});nz(t,d,{f:450,type:'lowpass',dur:.22,v:.25});},
+    boom:(t,d)=>{nz(t,d,{f:700,f2:90,type:'lowpass',dur:.75,v:.6,a:.004});tn(t,d,{f:62,f2:28,dur:.6,v:.45});},
+    flame:(t,d)=>{nz(t,d,{f:650,f2:400,q:.5,dur:.4,v:.16,a:.06});},
+    groan:(t,d)=>{const f=R(85,130);tn(t,d,{f,f2:f*.8,type:'sawtooth',dur:R(.7,1.1),v:.035,a:.15,vib:R(4,7)});nz(t,d,{f:f*4,q:6,dur:.8,v:.02,a:.2});},
+    bite:(t,d)=>{nz(t,d,{f:1200,q:2,dur:.1,v:.22});tn(t,d,{f:210,f2:110,dur:.09,v:.12});},
+    thud:(t,d)=>{tn(t,d,{f:R(85,105),f2:50,dur:.13,v:.22});nz(t,d,{f:320,type:'lowpass',dur:.08,v:.14});},
+    splat:(t,d)=>{nz(t,d,{f:900,f2:180,type:'lowpass',dur:.25,v:.26});tn(t,d,{f:140,f2:60,dur:.15,v:.1});},
+    shred:(t,d)=>{nz(t,d,{f:3000,type:'highpass',dur:.1,v:.1});},
+    crash:(t,d)=>{nz(t,d,{f:1600,f2:180,type:'lowpass',dur:.85,v:.45});tn(t,d,{f:75,f2:30,dur:.5,v:.3});nz(t+.12,d,{f:2500,q:3,dur:.3,v:.08});},
+    place:(t,d)=>{tn(t,d,{f:520,type:'triangle',dur:.06,v:.1});},
+    error:(t,d)=>{tn(t,d,{f:150,type:'square',dur:.07,v:.06});tn(t+.09,d,{f:120,type:'square',dur:.09,v:.06});},
+    demolish:(t,d)=>{nz(t,d,{f:900,type:'lowpass',dur:.25,v:.2});tn(t,d,{f:160,f2:80,dur:.18,v:.14});},
+    mark:(t,d)=>{tn(t,d,{f:880,dur:.05,v:.06});tn(t+.05,d,{f:1180,dur:.06,v:.05});},
+    click:(t,d)=>{tn(t,d,{f:1250,dur:.025,v:.045});},
+    arrive:(t,d)=>{[523,659,784].forEach((f,i)=>tn(t+i*.11,d,{f,dur:.35,v:.08}));},
+    empty:(t,d)=>{tn(t,d,{f:320,f2:190,type:'square',dur:.16,v:.05});},
+    chug:(t,d)=>{tn(t,d,{f:55,type:'square',dur:.07,v:.04});nz(t,d,{f:300,type:'lowpass',dur:.06,v:.06});},
+    tick:(t,d)=>{tn(t,d,{f:1800,dur:.02,v:.03});}
+  };
+  const BIG={boom:1,crash:1,sniper:1,mortarFire:1};
+  function fx(name,x,y){if(!ok()||muted)return;const now=performance.now();if(now-(last[name]||0)<(GAP[name]||50))return;
+    if(now-burstT>100){burstT=now;burst=0;}if(++burst>10)return;last[name]=now;
+    const t=ac.currentTime+.005,d=out(t,x,y,BIG[name]);if(!d)return;try{FX[name](t,d);}catch(e){}}
   function start(){if(started){if(ac&&ac.state==='suspended')ac.resume().catch(()=>{});return;}started=true;try{init();ac.resume&&ac.resume().catch(()=>{});}catch(e){}}
   function setMute(m){muted=m;try{localStorage.setItem('scrapyard-mute',m?'1':'0');}catch(e){}if(master)master.gain.setTargetAtTime(m?0:.55,ac.currentTime,.1);}
   document.addEventListener('visibilitychange',()=>{if(!ac)return;if(document.hidden)ac.suspend().catch(()=>{});else ac.resume().catch(()=>{});});
-  return {start,setMute,get muted(){return muted},bell,dawn,sting,get running(){return ok();},get step(){return step;}};
+  return {fx,start,setMute,get muted(){return muted},bell,dawn,sting,get running(){return ok();},get step(){return step;}};
 })();
 
+const SFX=(n,x,y)=>MUS.fx(n,x,y);
 /* ---------- UI ---------- */
 const $=id=>document.getElementById(id);
 let lastDh=-1,logDirty=true,objDirty=true,crewDirty=true,ctxKey='',flashT=0,openCat=null,trayHover=null,drawerTab='crew',toasts=[],recent=[],armT=0,trayDirty=true;
@@ -2025,7 +2080,7 @@ function buildDock(){
   h+=`<i class="sep"></i><button class="db${$('drawer').hidden?'':' open'}" data-d="1" title="Crew, log and guide (Tab)">${svg('crew')}<span>Crew</span><kbd>Tab</kbd></button>`;
   $('dock').innerHTML=h;
 }
-$('dock').addEventListener('click',e=>{const el=e.target.closest('.db');if(!el)return;
+$('dock').addEventListener('click',e=>{const el=e.target.closest('.db');if(!el)return;SFX('click');
   if(el.dataset.t){const t=el.dataset.t;if(DEF[t]&&!unlocked(t)){say(`${DEF[t].n} unlocks at ${TIER[DEF[t].tier]} survivors`,true);return;}setTool(tool===t&&t!=='hand'?'hand':t);}
   else if(el.dataset.c)toggleCat(el.dataset.c);
   else if(el.dataset.d)toggleDrawer();
@@ -2044,7 +2099,7 @@ function trayTick(){
   const info=trayInfoFor(trayHover||(DEF[tool]&&DEF[tool].cat===openCat?tool:''))||`<b>${openCat==='Automation'?'Machines':openCat}</b> · pick something to place. Blueprints can go down before you have the materials.`;
   if($('trayInfo').innerHTML!==info)$('trayInfo').innerHTML=info;
 }
-$('trayRow').addEventListener('click',e=>{const el=e.target.closest('.tile');if(!el)return;const k=el.dataset.k;
+$('trayRow').addEventListener('click',e=>{const el=e.target.closest('.tile');if(!el)return;SFX('click');const k=el.dataset.k;
   if(!unlocked(k)){say(`${DEF[k].n} unlocks at ${TIER[DEF[k].tier]} survivors`,true);return;}openCat=null;trayHover=null;setTool(tool===k?'hand':k);});
 $('trayRow').addEventListener('pointerover',e=>{const el=e.target.closest('.tile');trayHover=el?el.dataset.k:null;});
 $('trayRow').addEventListener('pointerleave',()=>{trayHover=null;});
