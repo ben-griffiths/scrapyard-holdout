@@ -1842,7 +1842,7 @@ window.addEventListener('keydown',e=>{
   const k=e.key.toLowerCase();
   if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(k)){keys.add(k);e.preventDefault();return;}
   if(k==='tab'){e.preventDefault();toggleDrawer();return;}
-  if(k==='r'){if(DEF[tool])toolDir=(toolDir+(e.shiftKey?3:1))%4;else{const b=(S.sel&&byId(S.sel))||(hover&&bAt(hover[0],hover[1]));if(b&&DEF[b.type].dir)b.dir=(b.dir+(e.shiftKey?3:1))%4;}}
+  if(k==='r'){if(DEF[tool]){toolDir=(toolDir+(e.shiftKey?3:1))%4;buildDock();}else{const b=(S.sel&&byId(S.sel))||(hover&&bAt(hover[0],hover[1]));if(b&&DEF[b.type].dir)b.dir=(b.dir+(e.shiftKey?3:1))%4;}}
   else if(k==='escape'){if(!$('drawer').hidden)toggleDrawer();else if(openCat){openCat=null;buildDock();}else if(S.sel||S.selP){S.sel=null;S.selP=null;}else setTool('hand');}
   else if(k==='q')setTool('hand');
   else if(k==='x')setTool('demolish');
@@ -1872,6 +1872,7 @@ const SVG={
   Defense:'<path d="M12 3l8 3v6c0 4.8-3.4 8-8 9-4.6-1-8-4.2-8-9V6z"/>',
   Power:'<path d="M13 2L4 14h6l-1 8 9-12h-6z"/>',
   Automation:'<circle cx="12" cy="12" r="3.5"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
+  rot:'<path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/>',
   crew:'<circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0112 0"/><path d="M16 5a3 3 0 010 6"/><path d="M21 20a6 6 0 00-4-5.6"/>'
 };
 const svg=k=>`<svg viewBox="0 0 24 24" aria-hidden="true">${SVG[k]}</svg>`;
@@ -1901,6 +1902,7 @@ function toggleCat(c){openCat=openCat===c?null:c;if(openCat&&!DEF[tool]&&tool!==
 function buildDock(){
   const b=(id,label,key,extra='')=>`<button class="db${tool===id?' on':''}" data-t="${id}" title="${label}${key?` (${key})`:''}">${svg(id)}<span>${label}</span>${key?`<kbd>${key}</kbd>`:''}${extra}</button>`;
   let h=b('hand','Select','Q')+b('chop','Chop','C')+b('scav','Scavenge','V')+b('demolish','Demolish','X')+'<i class="sep"></i>';
+  if(DEF[tool]&&DEF[tool].dir)h=`<button class="db open" data-r="1" title="Rotate (R)">${svg('rot')}<span>Faces ${DNAME[toolDir]}</span><kbd>R</kbd></button><i class="sep"></i>`+h;
   CATS.forEach((c,i)=>{const cur=DEF[tool]&&DEF[tool].cat===c;
     h+=`<button class="db${openCat===c?' open':''}${cur&&openCat!==c?' on':''}" data-c="${c}" title="${c} (${i+4})">${svg(c)}<span>${c==='Automation'?'Machines':c}</span><kbd>${i+4}</kbd></button>`;});
   if(recent.length){h+='<i class="sep"></i>';for(const k of recent)h+=`<button class="db${tool===k?' on':''}" data-t="${k}" title="${DEF[k].n}"><img src="${iconURL(k)}" alt="" width="24" height="24"><span>${DEF[k].n.split(' ').pop()}</span></button>`;}
@@ -1910,7 +1912,8 @@ function buildDock(){
 $('dock').addEventListener('click',e=>{const el=e.target.closest('.db');if(!el)return;
   if(el.dataset.t){const t=el.dataset.t;if(DEF[t]&&!unlocked(t)){say(`${DEF[t].n} unlocks at ${TIER[DEF[t].tier]} survivors`,true);return;}setTool(tool===t&&t!=='hand'?'hand':t);}
   else if(el.dataset.c)toggleCat(el.dataset.c);
-  else if(el.dataset.d)toggleDrawer();});
+  else if(el.dataset.d)toggleDrawer();
+  else if(el.dataset.r){toolDir=(toolDir+1)%4;buildDock();}});
 function trayInfoFor(k){const D=DEF[k];if(!D)return '';
   const extra=D.rec?` ${Object.entries(D.rec.in).map(([i,n])=>`${n} ${ITEMS[i].n.toLowerCase()}`).join(' + ')} → ${D.rec.k} ${ITEMS[D.rec.out].n.toLowerCase()}.`:'';
   return `<b>${D.n}</b> · ${unlocked(k)?costText(D.cost):`unlocks at ${TIER[D.tier]} survivors`} · ${D.d}${D.dir?' R turns it.':''}`;}
