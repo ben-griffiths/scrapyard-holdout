@@ -197,6 +197,16 @@ button:focus-visible{outline:2px solid var(--sodium);outline-offset:2px}
 .over h2{font-family:var(--display);font-size:44px;margin:0;color:var(--blood)}
 .over p{margin:0;max-width:40ch;font-size:17px}
 
+.intro{position:absolute;inset:0;z-index:7;display:grid;place-items:center;background:rgba(8,10,6,.45);padding:16px}
+.intro .float{position:relative;width:min(360px,100%);padding:18px 20px 16px;--glass:rgba(24,27,19,.8)}
+.intro h2{font-family:var(--display);font-weight:400;font-size:26px;margin:0 0 2px;color:var(--sodium);line-height:1}
+.intro .sub{margin:0 0 12px;color:var(--muted);font-size:14px}
+.intro ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px;counter-reset:s}
+.intro li{display:grid;grid-template-columns:22px 1fr;gap:8px;font-size:15px;line-height:1.3;counter-increment:s}
+.intro li::before{content:counter(s);width:20px;height:20px;border-radius:50%;background:rgba(241,192,70,.15);color:var(--sodium);font-weight:700;font-size:12px;display:grid;place-items:center}
+.intro kbd{font-family:var(--ui);font-weight:700;background:rgba(255,250,230,.1);border:1px solid rgba(255,250,230,.18);border-radius:4px;padding:0 5px}
+.intro .go{margin-top:14px;width:100%;padding:8px;border-radius:8px;border:0;background:var(--sodium);color:#1b1a10;font-weight:700;font-size:16px;cursor:pointer}
+.intro .foot{margin:8px 0 0;text-align:center;color:var(--muted);font-size:12.5px}
 @media (max-width:820px){
   .brand{display:none}
   .rail{gap:8px}
@@ -245,6 +255,20 @@ button:focus-visible{outline:2px solid var(--sodium);outline-offset:2px}
       </div>
       <div class="dbody" id="dbody"></div>
     </aside>
+    <div class="intro" id="intro" hidden>
+      <div class="float" role="dialog" aria-labelledby="introT">
+        <h2 id="introT">Hold the yard</h2>
+        <p class="sub">Your crew does the work. You give the orders.</p>
+        <ol>
+          <li><span>Drag over trees with <kbd>C</kbd> and scrap with <kbd>V</kbd>. Crew gather it.</span></li>
+          <li><span>Pick a building from the bottom bar. Crew fetch materials and build it.</span></li>
+          <li><span>Each person eats a meal at dawn. Plant Gardens and build a Campfire.</span></li>
+          <li><span>Zombies come at night. Wall up before dark. More survivors unlock more.</span></li>
+        </ol>
+        <button class="go" id="introGo">Start</button>
+        <p class="foot"><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> speed · <kbd>Space</kbd> pause · <kbd>Tab</kbd> crew &amp; guide</p>
+      </div>
+    </div>
     <div class="over" id="over" hidden>
       <h2>The camp fell</h2>
       <p id="overTxt"></p>
@@ -2062,6 +2086,11 @@ function boot(data){
   if(data&&data.save)ok=restore(data.save);
   if(!ok){try{const s=localStorage.getItem(SAVE_KEY);if(s)ok=restore(s);}catch(e){}}
   if(!ok||S.over)newGame();
+  let seen=false;try{seen=localStorage.getItem('scrapyard-intro')==='1';}catch(e){}
+  if(!ok&&!seen){$('intro').hidden=false;setTimeout(()=>{setSpeed(0);$('introGo').focus();},0);}
+  const closeIntro=()=>{if($('intro').hidden)return;$('intro').hidden=true;try{localStorage.setItem('scrapyard-intro','1');}catch(e){}setSpeed(1);};
+  $('introGo').onclick=closeIntro;$('intro').addEventListener('click',e=>{if(e.target.id==='intro')closeIntro();});
+  window.addEventListener('keydown',e=>{if(!$('intro').hidden&&(e.key==='Enter'||e.key==='Escape')){e.preventDefault();e.stopImmediatePropagation();closeIntro();}},true);
   buildRack();setSpeed(1);setTool('hand');logDirty=objDirty=crewDirty=true;
   window.claude?.hot?.snapshot?.(()=>({save:serialize()}));
   window.addEventListener('pagehide',save);
