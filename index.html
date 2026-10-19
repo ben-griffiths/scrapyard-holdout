@@ -66,8 +66,9 @@ button:focus-visible{outline:2px solid var(--sodium);outline-offset:2px}
 .right{display:flex;gap:8px;margin-left:auto;align-items:center;flex:none;position:sticky;right:0;z-index:1}
 @media (max-width:1560px){.brand{display:none}}
 @media (max-width:1280px){.chip{min-width:0;padding:3px 9px 3px 7px}.chip b{font-size:18px}}
-.speed{display:flex;gap:2px;padding:3px;border-radius:9px;background:rgba(20,22,15,.88);border:1px solid rgba(255,250,230,.08);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur)}
-.speed button{background:none;border:1px solid transparent;padding:5px 11px;border-radius:7px;cursor:pointer;font-weight:700;font-size:15px;font-variant-numeric:tabular-nums;color:var(--muted)}
+.speed{display:flex;gap:2px;padding:2px;margin-top:2px;border-radius:8px;background:rgba(0,0,0,.28);border:1px solid rgba(255,250,230,.08)}
+.speed button{flex:1}
+.speed button{background:none;border:1px solid transparent;padding:2px 6px;border-radius:6px;cursor:pointer;font-weight:700;font-size:13px;line-height:1.2;font-variant-numeric:tabular-nums;color:var(--muted)}
 .speed button:hover{color:var(--ink)}
 .speed button.on{background:var(--sodium);color:#1b1a10}
 .rbtn{background:var(--panel-2);border:1px solid var(--line);padding:3px 9px;border-radius:3px;cursor:pointer;font-weight:600}
@@ -210,7 +211,6 @@ button:focus-visible{outline:2px solid var(--sodium);outline-offset:2px}
 @media (max-width:820px){
   .brand{display:none}
   .rail{gap:8px}
-  .speed{background:rgba(20,22,15,.96);box-shadow:-10px 0 12px -4px rgba(0,0,0,.6)}
   .speed button{padding:4px 7px;font-size:13px}
   .chip{min-width:0;padding:3px 8px 3px 6px}.chip b{font-size:17px}.chip em{font-size:9px}.clock .day{font-size:20px}.clock{padding:4px 9px}
   .clock{min-width:0}
@@ -230,13 +230,8 @@ button:focus-visible{outline:2px solid var(--sodium);outline-offset:2px}
 <div class="app">
   <header class="rail" id="rail">
     <div class="brand">SCRAPYARD HOLDOUT</div>
-    <div class="clock"><div class="top"><span class="day" id="dayLbl">Day 1</span><span class="phase" id="phaseLbl">Daylight</span></div><div class="cyc"><i id="cycBar"></i></div></div>
+    <div class="clock"><div class="top"><span class="day" id="dayLbl">Day 1</span><span class="phase" id="phaseLbl">Daylight</span></div><div class="cyc"><i id="cycBar"></i></div><div class="speed" role="group" aria-label="Game speed"><button data-speed="0" id="sp0" aria-label="Pause">❚❚</button><button data-speed="1" id="sp1">1×</button><button data-speed="2" id="sp2">2×</button><button data-speed="3" id="sp3">3×</button></div></div>
     <div class="res" id="res"></div>
-    <div class="right">
-      <div class="speed" role="group" aria-label="Game speed">
-        <button data-speed="0" id="sp0" aria-label="Pause">❚❚</button><button data-speed="1" id="sp1">1×</button><button data-speed="2" id="sp2">2×</button><button data-speed="3" id="sp3">3×</button>
-      </div>
-    </div>
   </header>
 
   <main class="mapwrap" id="mapwrap">
