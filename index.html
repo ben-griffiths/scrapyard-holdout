@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="description" content="A 2D zombie survival colony builder: direct your crew, automate with conveyors and power, and hold the scrapyard through the night.">
-<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>:root{padding:0}body{margin:0;font:14px system-ui,sans-serif;background:#0b0c08}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>Scrapyard Holdout</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,13 +28,16 @@
 }
 [hidden]{display:none!important}
 html,body{height:100%}
+/* full-bleed: the map runs under the notch and home bar; on-screen controls add the safe-area insets themselves */
+:root{padding-top:0!important;padding-bottom:0!important;background:#0b0c08}
+html,body{height:100%;min-height:100%;overscroll-behavior:none}
 body{background:var(--ground);color:var(--ink);font-family:var(--ui);font-size:15px;overflow:hidden}
 button{font:inherit;color:inherit}
 button:focus-visible{outline:2px solid var(--sodium);outline-offset:2px}
 .app{position:relative;height:100%;box-sizing:border-box;display:grid;grid-template-rows:minmax(0,1fr);gap:0;padding-block:0;padding-left:0;padding-right:0}
 
 /* status strip */
-.rail{position:absolute;z-index:5;top:10px;left:max(12px,calc(env(safe-area-inset-left,0px) + 8px));right:max(12px,calc(env(safe-area-inset-right,0px) + 8px));display:flex;align-items:center;gap:10px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;overscroll-behavior-x:contain;min-width:0;padding:7px 10px;border-radius:12px;border:1px solid var(--glass-edge);
+.rail{position:absolute;z-index:5;top:max(10px,calc(env(safe-area-inset-top,0px) + 4px));left:max(12px,calc(env(safe-area-inset-left,0px) + 8px));right:max(12px,calc(env(safe-area-inset-right,0px) + 8px));display:flex;align-items:center;gap:10px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;overscroll-behavior-x:contain;min-width:0;padding:7px 10px;border-radius:12px;border:1px solid var(--glass-edge);
   background:linear-gradient(160deg,var(--glass-tint),transparent 45%),var(--glass);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);box-shadow:inset 0 1px 0 var(--glass-hi),inset 0 0 0 1px rgba(0,0,0,.25),0 10px 30px rgba(0,0,0,.45)}
 .brand{font-family:var(--display);font-size:18px;line-height:.95;color:var(--sodium);letter-spacing:.02em;white-space:nowrap;padding-right:4px}
 .clock{display:flex;flex-direction:column;gap:4px;width:212px;box-sizing:border-box;padding:2px 6px 2px 4px}
@@ -894,7 +897,7 @@ function zoomAt(sx,sy,f){const wx=sx/cam.z+cam.x,wy=sy/cam.z+cam.y;cam.z=clamp(c
 const toWorld=(sx,sy)=>[(sx/cam.z+cam.x)/T,(sy/cam.z+cam.y)/T];
 const toTile=(sx,sy)=>{const w=toWorld(sx,sy);return [Math.floor(w[0]),Math.floor(w[1])];};
 new ResizeObserver(resize).observe(wrap);
-new ResizeObserver(()=>{const r=document.getElementById('rail');railPad=r.offsetHeight+12;wrap.style.setProperty('--top',`${r.offsetHeight+16}px`);clampCam();}).observe(document.getElementById('rail'));
+new ResizeObserver(()=>{const r=document.getElementById('rail');railPad=r.offsetTop+r.offsetHeight+2;wrap.style.setProperty('--top',`${r.offsetTop+r.offsetHeight+6}px`);clampCam();}).observe(document.getElementById('rail'));
 
 /* ---------- ground ---------- */
 function buildGround(){
