@@ -136,11 +136,13 @@ button:focus-visible{outline:2px solid var(--sodium);outline-offset:2px}
 .dockwrap{position:absolute;left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));bottom:max(10px,calc(env(safe-area-inset-bottom,0px) + 6px));display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
 .dockwrap>*{pointer-events:auto}
 .dockwrap .float{position:relative}
-.dock{display:flex;align-items:stretch;gap:2px;padding:4px;max-width:100%;overflow-x:auto;scrollbar-width:none}
-.dock::-webkit-scrollbar{display:none}
-.dock.bleed{--bl:max(10px,env(safe-area-inset-left,0px));--br:max(10px,env(safe-area-inset-right,0px));align-self:stretch;max-width:none;
-  margin:0 calc(-1 * var(--br)) 0 calc(-1 * var(--bl));padding-left:calc(var(--bl) + 4px);padding-right:0;border-left:0;border-right:0;border-radius:0}
-.dock.bleed::after{content:'';flex:none;width:calc(var(--br) + 4px)}
+.dock{display:flex;align-items:stretch;gap:2px;padding:4px;flex:none}
+/* the glass bar itself scrolls inside a clear full-width strip, so at either end you see its rounded edge and a gap */
+.dockwrap>.dockscroll{pointer-events:none}.dockscroll>.dock{pointer-events:auto}
+.dockscroll{display:flex;max-width:100%;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;padding:14px 0 16px;margin:-14px 0 -16px}
+.dockscroll::-webkit-scrollbar{display:none}
+.dockscroll.bleed{--bl:max(10px,env(safe-area-inset-left,0px));--br:max(10px,env(safe-area-inset-right,0px));align-self:stretch;max-width:none;margin-left:calc(-1 * var(--bl));margin-right:calc(-1 * var(--br))}
+.dockscroll.bleed::before{content:'';flex:none;width:var(--bl)}.dockscroll.bleed::after{content:'';flex:none;width:var(--br)}
 .dock .sep{width:1px;background:rgba(255,250,230,.12);margin:4px 4px;flex:none}
 .db{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:64px;padding:7px 8px 5px;background:none;border:1px solid transparent;border-radius:5px;cursor:pointer;flex:none}
 .db:hover{background:rgba(255,250,230,.08)}
@@ -280,7 +282,7 @@ button:focus-visible{outline:2px solid var(--sodium);outline-offset:2px}
     <div class="hint" id="hint"></div>
     <div class="dockwrap" id="dockwrap">
       <div class="float tray" id="tray" hidden><div class="row" id="trayRow"></div><div class="trayinfo" id="trayInfo"></div></div>
-      <nav class="float dock" id="dock" aria-label="Orders and buildings"></nav>
+      <div class="dockscroll" id="dockscroll"><nav class="float dock" id="dock" aria-label="Orders and buildings"></nav></div>
     </div>
     <aside class="float drawer" id="drawer" hidden>
       <div class="dtabs" role="tablist">
@@ -2140,7 +2142,7 @@ function buildDock(){
   $('dock').innerHTML=h;fitDock();
 }
 // stretch the bar edge-to-edge only when it can't fit; otherwise it floats as a centred pill
-function fitDock(){const d=$('dock'),w=$('dockwrap'),sl=d.scrollLeft;d.classList.remove('bleed');d.classList.toggle('bleed',d.scrollWidth>w.clientWidth+1);d.scrollLeft=sl;}
+function fitDock(){const sc=$('dockscroll'),sl=sc.scrollLeft;sc.classList.toggle('bleed',$('dock').offsetWidth>$('dockwrap').clientWidth+1);sc.scrollLeft=sl;}
 window.addEventListener('resize',()=>fitDock());
 $('dock').addEventListener('click',e=>{const el=e.target.closest('.db');if(!el)return;SFX('click');
   if(el.dataset.t){const t=el.dataset.t;if(DEF[t]&&!unlocked(t)){say(`${DEF[t].n} unlocks at ${TIER[DEF[t].tier]} survivors`,true);return;}setTool(tool===t&&t!=='hand'?'hand':t);}
