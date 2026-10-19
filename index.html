@@ -282,7 +282,7 @@ button:focus-visible{outline:2px solid var(--sodium);outline-offset:2px}
 <script>
 (function(){
 "use strict";
-const T=32,W=48,STEP=1/30,DAY=120,NIGHT=68,BELT=2.4,PSPEED=2.6,SAVE_KEY='scrapyard-holdout-v4';
+const T=32,W=48,STEP=1/30,DAY=120,NIGHT=68,BELT=2.4,PSPEED=2.6,SAVE_KEY='scrapyard-holdout-v5';
 let H=48;
 const TIER=[0,0,6,10,16];
 const DIRS=[[1,0],[0,1],[-1,0],[0,-1]];
@@ -2086,10 +2086,10 @@ function frame(now){
 function boot(data){
   resize();
   let ok=false;
-  if(data&&data.save)ok=restore(data.save);
+  if(data&&data.save&&data.key===SAVE_KEY)ok=restore(data.save);
   if(!ok){try{const s=localStorage.getItem(SAVE_KEY);if(s)ok=restore(s);}catch(e){}}
   if(!ok||S.over)newGame();
-  let seen=false;try{seen=localStorage.getItem('scrapyard-intro-3')==='1';}catch(e){}
+  let seen=false;try{seen=localStorage.getItem('scrapyard-intro-4')==='1';}catch(e){}
   const introPics=()=>{const crop=t=>{let best=null,bd=1e9;for(let i=0;i<W*H;i++){if(S.ter[i]!==t)continue;const x=i%W,y=(i/W)|0,d=Math.hypot(x-S.hq.x,y-S.hq.y);if(d<bd){bd=d;best=[x,y];}}
       if(!best||!ground)return '';const c=document.createElement('canvas');c.width=c.height=24;const g=c.getContext('2d');g.drawImage(ground,best[0]*16-4,best[1]*16-4,24,24,0,0,24,24);return `<img src="${c.toDataURL()}" alt="">`;};
     const btn=(k,l)=>`<span class="mdb">${svg(k)}${l}</span>`,ic=k=>`<img src="${iconURL(k)}" alt="">`,ar='<span class="arw">›</span>';
@@ -2097,11 +2097,11 @@ function boot(data){
     $('ip3').innerHTML=ic('garden')+ic('garden')+ic('campfire');$('ip4').innerHTML=ic('wall')+ic('wall')+ic('trap');};
   window.__introPics=introPics;
   if(!ok&&!seen){introPics();$('intro').hidden=false;setTimeout(()=>{setSpeed(0);$('introGo').focus();},0);}
-  const closeIntro=()=>{if($('intro').hidden)return;$('intro').hidden=true;try{localStorage.setItem('scrapyard-intro-3','1');}catch(e){}setSpeed(1);};
+  const closeIntro=()=>{if($('intro').hidden)return;$('intro').hidden=true;try{localStorage.setItem('scrapyard-intro-4','1');}catch(e){}setSpeed(1);};
   $('introGo').onclick=closeIntro;$('intro').addEventListener('click',e=>{if(e.target.id==='intro')closeIntro();});
   window.addEventListener('keydown',e=>{if(!$('intro').hidden&&(e.key==='Enter'||e.key==='Escape')){e.preventDefault();e.stopImmediatePropagation();closeIntro();}},true);
   buildRack();setSpeed(1);setTool('hand');logDirty=objDirty=crewDirty=true;
-  window.claude?.hot?.snapshot?.(()=>({save:serialize()}));
+  window.claude?.hot?.snapshot?.(()=>({save:serialize(),key:SAVE_KEY}));
   window.addEventListener('pagehide',save);
   document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});
   requestAnimationFrame(t=>{last=t;frame(t);});
