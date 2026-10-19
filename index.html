@@ -271,7 +271,7 @@ button:focus-visible{outline:2px solid var(--sodium);outline-offset:2px}
 
   <main class="mapwrap" id="mapwrap">
     <canvas id="map" aria-label="Camp map"></canvas>
-    <div class="float speedbar"><div class="speed" role="group" aria-label="Game speed"><button data-speed="0" id="sp0" aria-label="Pause">❚❚</button><button data-speed="1" id="sp1">1×</button><button data-speed="2" id="sp2">2×</button><button data-speed="3" id="sp3">3×</button></div><button class="fsb" id="fsBtn" title="Fullscreen (F)" aria-label="Toggle fullscreen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>
+    <div class="float speedbar"><div class="speed" role="group" aria-label="Game speed"><button data-speed="0" id="sp0" aria-label="Pause">❚❚</button><button data-speed="1" id="sp1">1×</button><button data-speed="2" id="sp2">2×</button><button data-speed="3" id="sp3">3×</button></div><button class="fsb" id="muteBtn" title="Music on/off (M)" aria-label="Toggle music"></button><button class="fsb" id="fsBtn" title="Fullscreen (F)" aria-label="Toggle fullscreen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>
     <div class="toasts" id="toasts" aria-live="polite"></div>
     <section class="float insp" id="insp" hidden></section>
     <div class="hint" id="hint"></div>
@@ -508,6 +508,7 @@ function destroy(b,byZombie){
   S.fx.push({k:'puff',x:ctr(b)[0],y:ctr(b)[1],life:.6,max:.6,big:1});
   if(S.sel===b.id)S.sel=null;
   if(b.type==='hq'){gameOver();return;}
+  if(byZombie&&!b.frame&&b.type!=='trap'&&b.type!=='belt'&&b.type!=='wire')MUS.sting();
   if(byZombie&&!b.frame&&b.type!=='trap'&&b.type!=='belt')log(`Zombies wrecked a ${DEF[b.type].n}.${b.salv?` Salvaged ${b.salv.replace(/\+/g,'').trim()}.`:''} A rebuild blueprint is down.`,'bad');
 }
 function demolish(b){
@@ -752,7 +753,7 @@ function killPawn(p){
   dropJob(p);const i=S.pawns.indexOf(p);if(i>=0)S.pawns.splice(i,1);
   if(S.selP===p.id)S.selP=null;crewDirty=true;
   S.fx.push({k:'splat',x:p.x,y:p.y,life:40,max:40,r:Math.random()});
-  log(`${p.nm} was dragged down by the dead.`,'bad');
+  log(`${p.nm} was dragged down by the dead.`,'bad');MUS.sting();
   if(S.pawns.length===0)gameOver('Nobody is left.');
 }
 
@@ -805,7 +806,7 @@ function cycle(dt){
   if(!S.night){
     if(!S.warned&&S.t>=DAY-15){S.warned=true;const f=Math.floor(Math.random()*4);
       S.sides=Math.random()<.5?[f]:[f,(f+1+Math.floor(Math.random()*3))%4];
-      log(`Dusk soon. Groans from the ${S.sides.map(s=>SIDES[s]).join(' and ')}.`,'warn');}
+      log(`Dusk soon. Groans from the ${S.sides.map(s=>SIDES[s]).join(' and ')}.`,'warn');MUS.bell();}
     if(S.t>=DAY){S.night=true;S.t=0;S.warned=false;const n=2+S.day*2+Math.floor(S.pawns.length/3);S.spawnLeft=n;S.spawnN=n;S.spawnT=0;
       log(`Night ${S.day}. ${n} zombies coming in. The crew fall back to the HQ.`,'bad');}
   }else{
@@ -814,7 +815,7 @@ function cycle(dt){
   }
 }
 function dawn(){
-  S.night=false;S.t=0;S.day++;if(S.z.length)log(`Sunrise. ${S.z.length} of the dead turn back toward the treeline.`,'');
+  S.night=false;S.t=0;S.day++;MUS.dawn();if(S.z.length)log(`Sunrise. ${S.z.length} of the dead turn back toward the treeline.`,'');
   const need=S.pawns.length,eat=Math.min(need,S.stock.meal);S.stock.meal-=eat;const short=need-eat;
   if(short>0){const leave=Math.min(S.pawns.length-1,Math.ceil(short/2));const gone=[];
     for(let k=0;k<leave;k++){const p=S.pawns[S.pawns.length-1];dropJob(p);S.pawns.pop();gone.push(p.nm);}crewDirty=true;
@@ -1876,6 +1877,7 @@ window.addEventListener('keydown',e=>{
   else if(k==='q')setTool('hand');
   else if(k==='x')setTool('demolish');
   else if(k==='f'&&fsOK)toggleFS();
+  else if(k==='m')toggleMute();
   else if(k==='c')setTool('chop');
   else if(k==='v')setTool('scav');
   else if(k===' '){e.preventDefault();setSpeed(speed===0?1:0);}
@@ -1885,6 +1887,78 @@ window.addEventListener('keydown',e=>{
 });
 window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
 window.addEventListener('blur',()=>keys.clear());
+
+/* ---------- adaptive music (Web Audio, generated live) ---------- */
+const MUS=(()=>{let ac=null,master,music,dayG,nightG,sfx,started=false,muted=false,nextT=0,step=0,drone=null,intensity=0,melNote=3,lastSting=0;
+  try{muted=localStorage.getItem('scrapyard-mute')==='1';}catch(e){}
+  const N=m=>440*Math.pow(2,(m-69)/12);
+  const PROG=[[57,60,64],[53,57,60],[48,52,55],[55,59,62]];          // Am F C G
+  const SCALE=[57,60,62,64,67,69,72,74,76];                          // A minor pentatonic
+  const ok=()=>ac&&ac.state==='running';
+  let nb=null;const noise=()=>{if(nb)return nb;nb=ac.createBuffer(1,ac.sampleRate,ac.sampleRate);const d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;return nb;};
+  function init(){
+    ac=new (window.AudioContext||window.webkitAudioContext)();
+    master=ac.createGain();master.gain.value=muted?0:.55;
+    const comp=ac.createDynamicsCompressor();comp.threshold.value=-18;comp.ratio.value=4;master.connect(comp);comp.connect(ac.destination);
+    music=ac.createGain();music.connect(master);sfx=ac.createGain();sfx.gain.value=.7;sfx.connect(master);
+    dayG=ac.createGain();dayG.gain.value=0;dayG.connect(music);nightG=ac.createGain();nightG.gain.value=0;nightG.connect(music);
+    const dl=ac.createDelay(1),fb=ac.createGain(),lp=ac.createBiquadFilter();dl.delayTime.value=.34;fb.gain.value=.3;lp.frequency.value=1700;
+    dayG.connect(dl);dl.connect(lp);lp.connect(fb);fb.connect(dl);lp.connect(music);
+    const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=260;f.Q.value=2;const g=ac.createGain();g.gain.value=.2;
+    [45,45.07,52].forEach((m,i)=>{const o=ac.createOscillator();o.type=i<2?'sawtooth':'triangle';o.frequency.value=N(m);o.connect(f);o.start();});
+    const lfo=ac.createOscillator(),lg=ac.createGain();lfo.frequency.value=.07;lg.gain.value=110;lfo.connect(lg);lg.connect(f.frequency);lfo.start();
+    f.connect(g);g.connect(nightG);drone=f;
+    setInterval(sched,60);
+  }
+  function pluck(t,m,v,dur,dest){const o=ac.createOscillator(),o2=ac.createOscillator(),g=ac.createGain(),g2=ac.createGain(),f=ac.createBiquadFilter();
+    o.type='triangle';o2.type='sawtooth';o.frequency.value=N(m);o2.frequency.value=N(m)*1.004;g2.gain.value=.22;
+    f.type='lowpass';f.frequency.setValueAtTime(3200,t);f.frequency.exponentialRampToValueAtTime(500,t+dur);
+    o2.connect(g2);g2.connect(f);o.connect(f);f.connect(g);g.connect(dest);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.006);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.start(t);o2.start(t);o.stop(t+dur+.05);o2.stop(t+dur+.05);}
+  function brush(t,v,dest,fr){const s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=noise();f.type='bandpass';f.frequency.value=fr||5500;f.Q.value=.8;
+    g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+.12);s.connect(f);f.connect(g);g.connect(dest);s.start(t,Math.random()*.5);s.stop(t+.15);}
+  function thump(t,v,dest,f0){const o=ac.createOscillator(),g=ac.createGain();o.frequency.setValueAtTime(f0||90,t);o.frequency.exponentialRampToValueAtTime(38,t+.2);
+    g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+.32);o.connect(g);g.connect(dest);o.start(t);o.stop(t+.34);}
+  function scrape(t){const s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=noise();f.type='bandpass';f.Q.value=14;
+    f.frequency.setValueAtTime(900+Math.random()*1500,t);f.frequency.linearRampToValueAtTime(350+Math.random()*500,t+1.2);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.07,t+.3);g.gain.linearRampToValueAtTime(0,t+1.3);s.connect(f);f.connect(g);g.connect(nightG);s.start(t);s.stop(t+1.4);}
+  function sched(){
+    if(!ok()||!S||!S.hq)return;const now=ac.currentTime;if(nextT<now)nextT=now+.05;
+    const night=S.night,dusk=!night&&S.t>DAY-15,dk=dusk?1-(DAY-S.t)/15:0;
+    dayG.gain.setTargetAtTime(night?0:.9*(1-dk*.7),now,.8);
+    nightG.gain.setTargetAtTime(night?1:dk*.7,now,1.2);
+    music.gain.setTargetAtTime(S.over?.25:speed===0?.45:1,now,.5);
+    let near=0;const hx=S.hq.x+1,hy=S.hq.y+1;for(const z of S.z)if(!z.flee&&Math.hypot(z.x-hx,z.y-hy)<14)near++;
+    intensity+=(Math.min(1,near/12)-intensity)*.05;
+    drone.frequency.setTargetAtTime(220+intensity*900,now,.6);
+    while(nextT<now+.25){const t=nextT;
+      if(night){const st=60/(70+intensity*45)/2,b=step%8;
+        if(b===0)thump(t,.5,nightG,90);else if(b===1)thump(t,.3,nightG,70);
+        if(intensity>.35&&(b===4||b===6))thump(t,.2+intensity*.25,nightG,140);
+        if(intensity>.6&&b%2)brush(t,.04+intensity*.06,nightG,1800);
+        if(Math.random()<.035)scrape(t);
+        nextT+=st;}
+      else{const st=60/78/2,b=step%8,bar=Math.floor(step/8),ch=PROG[Math.floor(bar/2)%4],pat=[0,2,1,2,0,2,1,2];
+        pluck(t,ch[pat[b]]+(b===0?-12:0),b===0?.15:.075,b===0?1.6:.9,dayG);
+        if(b===0)pluck(t,ch[0]-24,.12,2.2,dayG);
+        if(b===2||b===6)brush(t,.022,dayG,6000);
+        if((b===3||b===7)&&Math.random()<.35){melNote=Math.max(0,Math.min(SCALE.length-1,melNote+Math.floor(Math.random()*3)-1));pluck(t+st*.5,SCALE[melNote]+12,.065,1.2,dayG);}
+        nextT+=st;}
+      step++;}
+  }
+  function bell(){if(!ok())return;const t=ac.currentTime+.02;[1,2.76,5.4].forEach((r,i)=>{const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=N(57)*r;
+    g.gain.setValueAtTime(.16/(i+1),t);g.gain.exponentialRampToValueAtTime(.0001,t+3.2-i*.7);o.connect(g);g.connect(sfx);o.start(t);o.stop(t+3.3);});}
+  function dawn(){if(!ok())return;const t=ac.currentTime+.05;[57,61,64,69,73].forEach((m,i)=>pluck(t+i*.13,m,.11,3.2,sfx));}
+  function sting(){if(!ok())return;const now=ac.currentTime;if(now-lastSting<4)return;lastSting=now;const t=now+.01;
+    [45,46,52].forEach(m=>{const o=ac.createOscillator(),f=ac.createBiquadFilter(),g=ac.createGain();o.type='sawtooth';o.frequency.value=N(m);
+      f.type='lowpass';f.frequency.setValueAtTime(1800,t);f.frequency.exponentialRampToValueAtTime(180,t+.8);g.gain.setValueAtTime(.11,t);g.gain.exponentialRampToValueAtTime(.0001,t+1);
+      o.connect(f);f.connect(g);g.connect(sfx);o.start(t);o.stop(t+1.05);});}
+  function start(){if(started){if(ac&&ac.state==='suspended')ac.resume().catch(()=>{});return;}started=true;try{init();ac.resume&&ac.resume().catch(()=>{});}catch(e){}}
+  function setMute(m){muted=m;try{localStorage.setItem('scrapyard-mute',m?'1':'0');}catch(e){}if(master)master.gain.setTargetAtTime(m?0:.55,ac.currentTime,.1);}
+  document.addEventListener('visibilitychange',()=>{if(!ac)return;if(document.hidden)ac.suspend().catch(()=>{});else ac.resume().catch(()=>{});});
+  return {start,setMute,get muted(){return muted},bell,dawn,sting,get running(){return ok();},get step(){return step;}};
+})();
 
 /* ---------- UI ---------- */
 const $=id=>document.getElementById(id);
@@ -1928,6 +2002,12 @@ function toggleFS(){try{const on=document.fullscreenElement||document.webkitFull
   const pr=on?(document.exitFullscreen||document.webkitExitFullscreen).call(document):(fsEl.requestFullscreen||fsEl.webkitRequestFullscreen).call(fsEl);
   if(pr&&pr.catch)pr.catch(()=>say('Fullscreen is not available here',true));}catch(e){say('Fullscreen is not available here',true);}}
 $('fsBtn').addEventListener('click',toggleFS);
+const SPK_ON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg>',
+      SPK_OFF='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>';
+function muteUI(){$('muteBtn').innerHTML=MUS.muted?SPK_OFF:SPK_ON;$('muteBtn').setAttribute('aria-pressed',String(!MUS.muted));}
+function toggleMute(){MUS.start();MUS.setMute(!MUS.muted);muteUI();say(MUS.muted?'Music off':'Music on',false);}
+$('muteBtn').addEventListener('click',toggleMute);muteUI();
+const kick=()=>MUS.start();window.addEventListener('pointerdown',kick,true);window.addEventListener('keydown',kick,true);
 document.querySelectorAll('.speed button').forEach(b=>b.addEventListener('click',()=>setSpeed(+b.dataset.speed)));
 $('res').innerHTML=`<span class="chip pop" id="c-pop" title="Survivors and beds"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">${SVG.crew}</svg><b id="survLbl">3/4</b></span>`+
   `<span class="chip" id="c-pow" hidden title="Power: supply / demand"><svg viewBox="0 0 24 24" width="16" height="16" fill="#f1c046" stroke="none" aria-hidden="true"><path d="M13 2L4 14h6l-1 8 9-12h-6z"/></svg><b id="r-pow">0/0</b><em id="r-bat">POWER</em></span>`+
@@ -1990,7 +2070,7 @@ function renderDrawer(){
       <p>At night everyone falls back to the HQ (or up a Watchtower) and shoots. At dawn each survivor eats one meal; spare meals and a free bed bring new people in. More people unlock more buildings, and at ${TIER[3]} survivors machines and conveyors open up.</p>
       <h4>Controls</h4><div class="keys"><kbd>1 2 3</kbd><span>Game speed · <kbd>0</kbd> or Space pauses</span><kbd>4</kbd><span>Camp</span><kbd>5</kbd><span>Crafting</span><kbd>6</kbd><span>Defense</span><kbd>7</kbd><span>Machines</span><kbd>8</kbd><span>Power</span>
       <kbd>Q</kbd><span>Select · Esc cancels</span><kbd>C</kbd><span>Chop</span><kbd>V</kbd><span>Scavenge</span><kbd>X</kbd><span>Demolish</span><kbd>R</kbd><span>Rotate (Shift+R back)</span>
-      <kbd>F</kbd><span>Fullscreen</span><kbd>Tab</kbd><span>This panel</span><kbd>WASD</kbd><span>Pan · wheel or pinch zooms · right-drag pans</span></div>
+      <kbd>F</kbd><span>Fullscreen</span><kbd>M</kbd><span>Music on/off</span><kbd>Tab</kbd><span>This panel</span><kbd>WASD</kbd><span>Pan · wheel or pinch zooms · right-drag pans</span></div>
       <h4>Camp</h4><p>Day ${S.day} · ${S.stats.kills} zombies put down · ${S.dlog.length} belt deliveries in the last minute.</p>
       <div class="btns"><button class="btn" id="guideBtn">Show quick guide</button><button class="btn danger" id="newBtn">${armT>0?'Tap again to abandon this camp':'New camp'}</button></div></div>`;
     $('guideBtn').onclick=()=>{toggleDrawer();window.__introPics&&window.__introPics();$('intro').hidden=false;setSpeed(0);$('introGo').focus();};
