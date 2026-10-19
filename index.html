@@ -280,7 +280,7 @@ button:focus-visible{outline:2px solid var(--sodium);outline-offset:2px}
 <script>
 (function(){
 "use strict";
-const T=32,W=48,STEP=1/30,DAY=120,NIGHT=68,BELT=2.4,PSPEED=2.6,SAVE_KEY='scrapyard-holdout-v2';
+const T=32,W=48,STEP=1/30,DAY=120,NIGHT=68,BELT=2.4,PSPEED=2.6,SAVE_KEY='scrapyard-holdout-v3';
 let H=48;
 const TIER=[0,0,6,10,16];
 const DIRS=[[1,0],[0,1],[-1,0],[0,-1]];
@@ -1951,7 +1951,8 @@ function renderDrawer(){
       <kbd>Q</kbd><span>Select · Esc cancels</span><kbd>C</kbd><span>Chop</span><kbd>V</kbd><span>Scavenge</span><kbd>X</kbd><span>Demolish</span><kbd>R</kbd><span>Rotate (Shift+R back)</span>
       <kbd>Tab</kbd><span>This panel</span><kbd>WASD</kbd><span>Pan · wheel or pinch zooms · right-drag pans</span></div>
       <h4>Camp</h4><p>Day ${S.day} · ${S.stats.kills} zombies put down · ${S.dlog.length} belt deliveries in the last minute.</p>
-      <div class="btns"><button class="btn danger" id="newBtn">${armT>0?'Tap again to abandon this camp':'New camp'}</button></div></div>`;
+      <div class="btns"><button class="btn" id="guideBtn">Show quick guide</button><button class="btn danger" id="newBtn">${armT>0?'Tap again to abandon this camp':'New camp'}</button></div></div>`;
+    $('guideBtn').onclick=()=>{toggleDrawer();$('intro').hidden=false;setSpeed(0);$('introGo').focus();};
     $('newBtn').onclick=()=>{if(armT>0){armT=0;try{localStorage.removeItem(SAVE_KEY);}catch(e){}$('over').hidden=true;newGame();resetUi();toggleDrawer();}else{armT=3;renderDrawer();}};}
 }
 $('dbody').addEventListener('click',e=>{
@@ -2086,9 +2087,9 @@ function boot(data){
   if(data&&data.save)ok=restore(data.save);
   if(!ok){try{const s=localStorage.getItem(SAVE_KEY);if(s)ok=restore(s);}catch(e){}}
   if(!ok||S.over)newGame();
-  let seen=false;try{seen=localStorage.getItem('scrapyard-intro')==='1';}catch(e){}
+  let seen=false;try{seen=localStorage.getItem('scrapyard-intro-2')==='1';}catch(e){}
   if(!ok&&!seen){$('intro').hidden=false;setTimeout(()=>{setSpeed(0);$('introGo').focus();},0);}
-  const closeIntro=()=>{if($('intro').hidden)return;$('intro').hidden=true;try{localStorage.setItem('scrapyard-intro','1');}catch(e){}setSpeed(1);};
+  const closeIntro=()=>{if($('intro').hidden)return;$('intro').hidden=true;try{localStorage.setItem('scrapyard-intro-2','1');}catch(e){}setSpeed(1);};
   $('introGo').onclick=closeIntro;$('intro').addEventListener('click',e=>{if(e.target.id==='intro')closeIntro();});
   window.addEventListener('keydown',e=>{if(!$('intro').hidden&&(e.key==='Enter'||e.key==='Escape')){e.preventDefault();e.stopImmediatePropagation();closeIntro();}},true);
   buildRack();setSpeed(1);setTool('hand');logDirty=objDirty=crewDirty=true;
