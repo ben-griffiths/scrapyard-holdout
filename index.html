@@ -138,8 +138,8 @@ button:focus-visible{outline:2px solid var(--sodium);outline-offset:2px}
 .dockwrap .float{position:relative}
 .dock{display:flex;align-items:stretch;gap:2px;padding:4px;flex:none}
 /* the glass bar itself scrolls inside a clear full-width strip, so at either end you see its rounded edge and a gap */
-.dockwrap>.dockscroll{pointer-events:none}.dockscroll>.dock{pointer-events:auto}
-.dockscroll{display:flex;max-width:100%;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;padding:14px 0 16px;margin:-14px 0 -16px}
+.dockwrap>.dockscroll{pointer-events:auto;touch-action:pan-x}
+.dockscroll{display:flex;max-width:100%;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;padding:8px 0 12px;margin:-8px 0 -12px}
 .dockscroll::-webkit-scrollbar{display:none}
 .dockscroll.bleed{--bl:max(10px,env(safe-area-inset-left,0px));--br:max(10px,env(safe-area-inset-right,0px));align-self:stretch;max-width:none;margin-left:calc(-1 * var(--bl));margin-right:calc(-1 * var(--br))}
 .dockscroll.bleed::before{content:'';flex:none;width:var(--bl)}.dockscroll.bleed::after{content:'';flex:none;width:var(--br)}
