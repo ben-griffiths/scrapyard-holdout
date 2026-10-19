@@ -2008,9 +2008,12 @@ const MUS=(()=>{let ac=null,master,music,dayG,nightG,sfx,started=false,muted=fal
   function fx(name,x,y){if(!ok()||muted)return;const now=performance.now();if(now-(last[name]||0)<(GAP[name]||50))return;
     if(now-burstT>100){burstT=now;burst=0;}if(++burst>10)return;last[name]=now;
     const t=ac.currentTime+.005,d=out(t,x,y,BIG[name]);if(!d)return;try{FX[name](t,d);}catch(e){}}
-  function start(){if(started){if(ac&&ac.state==='suspended')ac.resume().catch(()=>{});return;}started=true;try{init();ac.resume&&ac.resume().catch(()=>{});}catch(e){}}
+  function unlock(){// iOS: resume + play a silent buffer inside the gesture, and route as media playback so the silent switch doesn't mute it
+    try{if(navigator.audioSession)navigator.audioSession.type='playback';}catch(e){}
+    try{if(ac.state!=='running')ac.resume().catch(()=>{});const b=ac.createBuffer(1,1,22050),src=ac.createBufferSource();src.buffer=b;src.connect(ac.destination);src.start(0);}catch(e){}}
+  function start(){if(!started){started=true;try{init();}catch(e){return;}}if(ac)unlock();}
   function setMute(m){muted=m;try{localStorage.setItem('scrapyard-mute',m?'1':'0');}catch(e){}if(master)master.gain.setTargetAtTime(m?0:.55,ac.currentTime,.1);}
-  document.addEventListener('visibilitychange',()=>{if(!ac)return;if(document.hidden)ac.suspend().catch(()=>{});else ac.resume().catch(()=>{});});
+  document.addEventListener('visibilitychange',()=>{if(!ac)return;if(document.hidden)ac.suspend().catch(()=>{});else{ac.resume().catch(()=>{});['touchend','click','keydown','pointerup'].forEach(ev=>window.addEventListener(ev,()=>start(),{capture:true,once:true}));}});
   return {fx,start,setMute,get muted(){return muted},bell,dawn,sting,get running(){return ok();},get step(){return step;}};
 })();
 
@@ -2062,7 +2065,8 @@ const SPK_ON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V
 function muteUI(){$('muteBtn').innerHTML=MUS.muted?SPK_OFF:SPK_ON;$('muteBtn').setAttribute('aria-pressed',String(!MUS.muted));}
 function toggleMute(){MUS.start();MUS.setMute(!MUS.muted);muteUI();say(MUS.muted?'Music off':'Music on',false);}
 $('muteBtn').addEventListener('click',toggleMute);muteUI();
-const kick=()=>MUS.start();window.addEventListener('pointerdown',kick,true);window.addEventListener('keydown',kick,true);
+const kick=()=>{MUS.start();if(MUS.running){['touchend','click','keydown','pointerup'].forEach(ev=>window.removeEventListener(ev,kick,true));}};
+['touchend','click','keydown','pointerup'].forEach(ev=>window.addEventListener(ev,kick,true));
 document.querySelectorAll('.speed button').forEach(b=>b.addEventListener('click',()=>setSpeed(+b.dataset.speed)));
 $('res').innerHTML=`<span class="chip pop" id="c-pop" title="Survivors and beds"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">${SVG.crew}</svg><b id="survLbl">3/4</b></span>`+
   `<span class="chip" id="c-pow" hidden title="Power: supply / demand"><svg viewBox="0 0 24 24" width="16" height="16" fill="#f1c046" stroke="none" aria-hidden="true"><path d="M13 2L4 14h6l-1 8 9-12h-6z"/></svg><b id="r-pow">0/0</b><em id="r-bat">POWER</em></span>`+
