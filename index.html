@@ -1902,7 +1902,7 @@ function toggleCat(c){openCat=openCat===c?null:c;if(openCat&&!DEF[tool]&&tool!==
 function buildDock(){
   const b=(id,label,key,extra='')=>`<button class="db${tool===id?' on':''}" data-t="${id}" title="${label}${key?` (${key})`:''}">${svg(id)}<span>${label}</span>${key?`<kbd>${key}</kbd>`:''}${extra}</button>`;
   let h=b('hand','Select','Q')+b('chop','Chop','C')+b('scav','Scavenge','V')+b('demolish','Demolish','X')+'<i class="sep"></i>';
-  if(DEF[tool]&&DEF[tool].dir)h=`<button class="db open" data-r="1" title="Rotate (R)">${svg('rot')}<span>Faces ${DNAME[toolDir]}</span><kbd>R</kbd></button><i class="sep"></i>`+h;
+  if(DEF[tool]&&DEF[tool].dir)h=`<button class="db open" data-r="1" title="Rotate (R) · output faces ${DNAME[toolDir]}" aria-label="Rotate, output faces ${DNAME[toolDir]}"><svg viewBox="0 0 24 24" aria-hidden="true" style="color:var(--sodium);stroke-width:2.6"><g transform="rotate(${toolDir*90} 12 12)"><path d="M4 12h15"/><path d="M13 6l6 6-6 6"/></g></svg><span>Rotate</span><kbd>R</kbd></button><i class="sep"></i>`+h;
   CATS.forEach((c,i)=>{const cur=DEF[tool]&&DEF[tool].cat===c;
     h+=`<button class="db${openCat===c?' open':''}${cur&&openCat!==c?' on':''}" data-c="${c}" title="${c} (${i+4})">${svg(c)}<span>${c==='Automation'?'Machines':c}</span><kbd>${i+4}</kbd></button>`;});
   if(recent.length){h+='<i class="sep"></i>';for(const k of recent)h+=`<button class="db${tool===k?' on':''}" data-t="${k}" title="${DEF[k].n}"><img src="${iconURL(k)}" alt="" width="24" height="24"><span>${DEF[k].n.split(' ').pop()}</span></button>`;}
