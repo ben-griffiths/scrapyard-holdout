@@ -1897,7 +1897,7 @@ window.addEventListener('blur',()=>keys.clear());
 
 /* ---------- adaptive music (Web Audio, generated live) ---------- */
 try{if(navigator.audioSession)navigator.audioSession.type='playback';}catch(e){}
-const MUS=(()=>{let ac=null,master,music,dayG,nightG,sfx,started=false,muted=false,nextT=0,step=0,drone=null,intensity=0,melNote=3,lastSting=0,nDry,nVerb,wasNight=false;
+const MUS=(()=>{let ac=null,master,music,dayG,nightG,sfx,started=false,muted=false,nextT=0,step=0,drone=null,intensity=0,melNote=3,lastSting=0;
   try{muted=localStorage.getItem('scrapyard-mute')==='1';}catch(e){}
   const N=m=>440*Math.pow(2,(m-69)/12);
   const PROG=[[57,60,64],[53,57,60],[48,52,55],[55,59,62]];          // Am F C G
@@ -1916,10 +1916,6 @@ const MUS=(()=>{let ac=null,master,music,dayG,nightG,sfx,started=false,muted=fal
     [45,45.07,52].forEach((m,i)=>{const o=ac.createOscillator();o.type=i<2?'sawtooth':'triangle';o.frequency.value=N(m);o.connect(f);o.start();});
     const lfo=ac.createOscillator(),lg=ac.createGain();lfo.frequency.value=.07;lg.gain.value=110;lfo.connect(lg);lg.connect(f.frequency);lfo.start();
     f.connect(g);g.connect(nightG);drone=f;
-    // night bus: dry + a long dark reverb (generated impulse)
-    nDry=ac.createGain();nDry.connect(nightG);nVerb=ac.createGain();const cv=ac.createConvolver(),len=Math.floor(ac.sampleRate*3.2),ir=ac.createBuffer(2,len,ac.sampleRate);
-    for(let c=0;c<2;c++){const d=ir.getChannelData(c);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3.2);}
-    cv.buffer=ir;const vlp=ac.createBiquadFilter();vlp.type='lowpass';vlp.frequency.value=2600;nVerb.connect(cv);cv.connect(vlp);vlp.connect(nightG);
     ac.onstatechange=()=>{if(ac.state!=='running'&&!document.hidden)ac.resume().catch(()=>{});};
     setInterval(sched,60);
   }
@@ -1936,57 +1932,6 @@ const MUS=(()=>{let ac=null,master,music,dayG,nightG,sfx,started=false,muted=fal
   function scrape(t){const s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=noise();f.type='bandpass';f.Q.value=14;
     f.frequency.setValueAtTime(900+Math.random()*1500,t);f.frequency.linearRampToValueAtTime(350+Math.random()*500,t+1.2);
     g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.07,t+.3);g.gain.linearRampToValueAtTime(0,t+1.3);s.connect(f);f.connect(g);g.connect(nightG);s.start(t);s.stop(t+1.4);}
-  /* ---- night instruments ---- */
-  const NPROG=[[45,57,60,64],[41,57,60,65],[46,58,62,65],[40,56,59,64]];   // Am  F  Bb  E  (phrygian dread)
-  const NBOX=[69,70,72,74,76,77,79,81,82,84];
-  function snd(g,wet){g.connect(nDry);if(wet){const w=ac.createGain();w.gain.value=wet;g.connect(w);w.connect(nVerb);}}
-  function pad(t,ch,dur,cut){const f=ac.createBiquadFilter(),g=ac.createGain();f.type='lowpass';f.Q.value=3;
-    f.frequency.setValueAtTime(cut*.5,t);f.frequency.linearRampToValueAtTime(cut,t+dur*.6);f.frequency.linearRampToValueAtTime(cut*.6,t+dur+1);
-    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.05,t+1.1);g.gain.setValueAtTime(.05,t+dur);g.gain.linearRampToValueAtTime(0,t+dur+1.6);
-    f.connect(g);snd(g,.9);
-    for(const m of ch.slice(1))for(const dt of [-.08,.08]){const o=ac.createOscillator();o.type='sawtooth';o.frequency.value=N(m+dt);o.connect(f);o.start(t);o.stop(t+dur+1.7);}}
-  function bass(t,m,v,dur){const o=ac.createOscillator(),o2=ac.createOscillator(),f=ac.createBiquadFilter(),g=ac.createGain();o.type='sawtooth';o2.type='square';
-    o.frequency.value=N(m);o2.frequency.value=N(m-12);f.type='lowpass';f.Q.value=6;f.frequency.setValueAtTime(700+intensity*900,t);f.frequency.exponentialRampToValueAtTime(110,t+dur);
-    g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(f);o2.connect(f);f.connect(g);snd(g,.15);
-    o.start(t);o2.start(t);o.stop(t+dur+.02);o2.stop(t+dur+.02);}
-  function arp(t,m,v){const o=ac.createOscillator(),f=ac.createBiquadFilter(),g=ac.createGain();o.type='square';o.frequency.value=N(m);
-    f.type='lowpass';f.frequency.setValueAtTime(2400,t);f.frequency.exponentialRampToValueAtTime(400,t+.16);
-    g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+.18);o.connect(f);f.connect(g);snd(g,.45);o.start(t);o.stop(t+.2);}
-  function tick(t,v){const s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=noise();f.type='highpass';f.frequency.value=7500;
-    g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+.035);s.connect(f);f.connect(g);snd(g,.2);s.start(t,Math.random()*.5);s.stop(t+.05);}
-  function tom(t,f0,v){const o=ac.createOscillator(),g=ac.createGain();o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f0*.55,t+.35);
-    g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+.5);o.connect(g);snd(g,.5);o.start(t);o.stop(t+.52);
-    const s=ac.createBufferSource(),bf=ac.createBiquadFilter(),ng=ac.createGain();s.buffer=noise();bf.type='bandpass';bf.frequency.value=f0*3;bf.Q.value=1.2;
-    ng.gain.setValueAtTime(v*.35,t);ng.gain.exponentialRampToValueAtTime(.0001,t+.09);s.connect(bf);bf.connect(ng);snd(ng,.4);s.start(t,Math.random()*.5);s.stop(t+.1);}
-  function heart(t,v,f0){const o=ac.createOscillator(),g=ac.createGain(),f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=180;
-    o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(32,t+.18);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+.3);
-    o.connect(f);f.connect(g);snd(g,.1);o.start(t);o.stop(t+.32);}
-  function box(t,m,v){[[1,v],[4.02,v*.25],[2.98,v*.12]].forEach(([r,a])=>{const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=N(m)*r;
-    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(a,t+.004);g.gain.exponentialRampToValueAtTime(.0001,t+(r===1?2.6:.9));o.connect(g);snd(g,1.4);o.start(t);o.stop(t+2.7);});}
-  function trem(t,ch,dur,v,rate){const g=ac.createGain(),am=ac.createGain(),lfo=ac.createOscillator(),lg=ac.createGain(),f=ac.createBiquadFilter();
-    f.type='lowpass';f.frequency.value=3200;am.gain.value=.5;lfo.frequency.value=rate;lg.gain.value=.5;lfo.connect(lg);lg.connect(am.gain);
-    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+dur*.8);g.gain.linearRampToValueAtTime(0,t+dur+.3);f.connect(am);am.connect(g);snd(g,.8);
-    lfo.start(t);lfo.stop(t+dur+.4);for(const m of ch.slice(2))for(const dt of [-.1,.1]){const o=ac.createOscillator();o.type='sawtooth';o.frequency.value=N(m+12+dt);o.connect(f);o.start(t);o.stop(t+dur+.4);}}
-  function nightStep(t,st){const b=step%16,bar=Math.floor(step/16),ch=NPROG[bar%4],I=intensity,barDur=st*16;
-    if(b===0){pad(t,ch,barDur,500+I*1800);if(I>.62)trem(t,ch,barDur,.018+I*.02,1/(st*.5));}
-    // heartbeat that turns into a march as they close in
-    if(b===0)heart(t,.6,85);else if(b===2)heart(t,.38,70);
-    if(I>.4&&b===8)heart(t,.5,85);if(I>.4&&b===10)heart(t,.32,70);
-    if(I>.75&&(b===4||b===12))heart(t,.5,95);
-    // bass: long notes when quiet, driving 8ths when busy
-    if(I<.22){if(b===0)bass(t,ch[0]-12,.16,barDur*.45);else if(b===8&&bar%2)bass(t,ch[0]-12+(bar%4===3?1:0),.1,barDur*.4);}
-    else if(b%2===0)bass(t,ch[0]-12+(b%8===6?12:0),.09+I*.08,st*1.8);
-    // ticking clock
-    if(b%4===2)tick(t,.022);else if(I>.3&&b%2===0)tick(t,.012);else if(I>.65)tick(t,.007+(b%2)*.006);
-    // pulsing arpeggio
-    if(I>.45){const a=[ch[1],ch[2],ch[3],ch[2]+12][b%4]+12;arp(t,a,.022+I*.025);}
-    // toms: fill at the end of every 4th bar, plus a hit pattern when it's chaos
-    if(I>.5&&bar%4===3&&b>=10){const fill={10:150,12:130,13:120,14:105,15:92}[b];if(fill)tom(t,fill,.28+I*.2);}
-    else if(I>.6&&(b===6||b===14))tom(t,b===6?120:95,.22+I*.15);
-    // lonely music box when it's quiet
-    if(b%4===0&&Math.random()<.22*(1-I*.8)){const pool=NBOX.filter(m=>ch.slice(1).some(c=>(m-c)%12===0));
-      const m=Math.random()<.7?pool[Math.floor(Math.random()*pool.length)]:NBOX[Math.floor(Math.random()*NBOX.length)];box(t+(Math.random()<.3?st:0),m,.05);}
-    if(Math.random()<.012)scrape(t);}
   function sched(){
     if(!ok()||!S||!S.hq)return;const now=ac.currentTime;if(nextT<now)nextT=now+.05;
     const night=S.night,dusk=!night&&S.t>DAY-15,dk=dusk?1-(DAY-S.t)/15:0;
@@ -1997,8 +1942,12 @@ const MUS=(()=>{let ac=null,master,music,dayG,nightG,sfx,started=false,muted=fal
     intensity+=(Math.min(1,near/12)-intensity)*.05;
     drone.frequency.setTargetAtTime(220+intensity*900,now,.6);
     while(nextT<now+.25){const t=nextT;
-      const nt=night||dk>.3;if(nt!==wasNight){wasNight=nt;step=0;}
-      if(nt){const st=60/(80+intensity*34)/4;nightStep(t,st);nextT+=st;}
+      if(night){const st=60/(70+intensity*45)/2,b=step%8;
+        if(b===0)thump(t,.5,nightG,90);else if(b===1)thump(t,.3,nightG,70);
+        if(intensity>.35&&(b===4||b===6))thump(t,.2+intensity*.25,nightG,140);
+        if(intensity>.6&&b%2)brush(t,.04+intensity*.06,nightG,1800);
+        if(Math.random()<.035)scrape(t);
+        nextT+=st;}
       else{const st=60/78/2,b=step%8,bar=Math.floor(step/8),ch=PROG[Math.floor(bar/2)%4],pat=[0,2,1,2,0,2,1,2];
         pluck(t,ch[pat[b]]+(b===0?-12:0),b===0?.15:.075,b===0?1.6:.9,dayG);
         if(b===0)pluck(t,ch[0]-24,.12,2.2,dayG);
