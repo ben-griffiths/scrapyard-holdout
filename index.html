@@ -1964,7 +1964,7 @@ const MUS=(()=>{let ac=null,master,music,dayG,nightG,sfx,started=false,muted=fal
       f.type='lowpass';f.frequency.setValueAtTime(1800,t);f.frequency.exponentialRampToValueAtTime(180,t+.8);g.gain.setValueAtTime(.11,t);g.gain.exponentialRampToValueAtTime(.0001,t+1);
       o.connect(f);f.connect(g);g.connect(sfx);o.start(t);o.stop(t+1.05);});}
   /* --- sound effects --- */
-  const last={},GAP={chop:90,clank:90,hammer:80,built:60,craftPlank:140,craftMeal:220,craftPlate:120,craftAmmo:90,drop:80,gun:45,sniper:120,rifle:55,mortarFire:150,boom:90,
+  const last={},GAP={chop:90,clank:260,hammer:80,built:60,craftPlank:140,craftMeal:220,craftPlate:120,craftAmmo:90,drop:80,gun:45,sniper:120,rifle:55,mortarFire:150,boom:90,
     flame:160,groan:650,bite:160,thud:130,splat:60,shred:120,crash:150,place:35,error:250,demolish:60,mark:80,click:30,arrive:300,empty:500,chug:420,tick:140};
   let burst=0,burstT=0;
   function out(t,x,y,big){const g=ac.createGain();let vol=1,pan=0;
@@ -1981,7 +1981,7 @@ const MUS=(()=>{let ac=null,master,music,dayG,nightG,sfx,started=false,muted=fal
   const R=(a,b)=>a+Math.random()*(b-a);
   const FX={
     chop:(t,d)=>{nz(t,d,{f:R(800,1100),q:3,dur:.08,v:.35});tn(t,d,{f:180,f2:90,dur:.07,v:.18});},
-    clank:(t,d)=>{tn(t,d,{f:R(1100,1400),type:'square',dur:.12,v:.05});tn(t,d,{f:R(1600,1900),dur:.18,v:.06});nz(t,d,{f:4000,type:'highpass',dur:.05,v:.1});},
+    clank:(t,d)=>{tn(t,d,{f:R(700,900),type:'triangle',dur:.09,v:.035});tn(t,d,{f:R(1150,1350),dur:.12,v:.02});nz(t,d,{f:2400,q:2,dur:.03,v:.03});},
     hammer:(t,d)=>{tn(t,d,{f:R(200,240),f2:110,type:'triangle',dur:.06,v:.25});nz(t,d,{f:2200,q:2,dur:.03,v:.14});},
     built:(t,d)=>{tn(t,d,{f:660,dur:.18,v:.09});tn(t+.08,d,{f:990,dur:.3,v:.09});},
     craftPlank:(t,d)=>{nz(t,d,{f:1300,f2:2200,q:1.5,dur:.2,v:.16,a:.03});},
