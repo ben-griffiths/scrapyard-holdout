@@ -31,10 +31,10 @@ html,body{height:100%}
 body{background:var(--ground);color:var(--ink);font-family:var(--ui);font-size:15px;overflow:hidden}
 button{font:inherit;color:inherit}
 button:focus-visible{outline:2px solid var(--sodium);outline-offset:2px}
-.app{position:relative;height:100%;box-sizing:border-box;display:grid;grid-template-rows:minmax(0,1fr);gap:6px;padding-block:6px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.app{position:relative;height:100%;box-sizing:border-box;display:grid;grid-template-rows:minmax(0,1fr);gap:0;padding-block:0;padding-left:0;padding-right:0}
 
 /* status strip */
-.rail{position:absolute;z-index:5;top:12px;left:calc(max(16px,env(safe-area-inset-left,0px)) + 8px);right:calc(max(16px,env(safe-area-inset-right,0px)) + 8px);display:flex;align-items:center;gap:10px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;overscroll-behavior-x:contain;min-width:0;padding:7px 10px;border-radius:12px;border:1px solid var(--glass-edge);
+.rail{position:absolute;z-index:5;top:10px;left:max(12px,calc(env(safe-area-inset-left,0px) + 8px));right:max(12px,calc(env(safe-area-inset-right,0px) + 8px));display:flex;align-items:center;gap:10px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;overscroll-behavior-x:contain;min-width:0;padding:7px 10px;border-radius:12px;border:1px solid var(--glass-edge);
   background:linear-gradient(160deg,var(--glass-tint),transparent 45%),var(--glass);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);box-shadow:inset 0 1px 0 var(--glass-hi),inset 0 0 0 1px rgba(0,0,0,.25),0 10px 30px rgba(0,0,0,.45)}
 .brand{font-family:var(--display);font-size:18px;line-height:.95;color:var(--sodium);letter-spacing:.02em;white-space:nowrap;padding-right:4px}
 .clock{display:flex;flex-direction:column;gap:4px;width:212px;box-sizing:border-box;padding:2px 6px 2px 4px}
@@ -66,8 +66,11 @@ button:focus-visible{outline:2px solid var(--sodium);outline-offset:2px}
 .right{display:flex;gap:8px;margin-left:auto;align-items:center;flex:none;position:sticky;right:0;z-index:1}
 @media (max-width:1560px){.brand{display:none}}
 @media (max-width:1280px){.chip{min-width:0;padding:3px 9px 3px 7px}.chip b{font-size:18px}}
-.speedbar{top:calc(var(--top,10px) - 6px);left:8px;padding:3px;border-radius:10px;z-index:3}
+.speedbar{top:calc(var(--top,10px) - 6px);left:max(12px,calc(env(safe-area-inset-left,0px) + 8px));display:flex;gap:3px;align-items:center;padding:3px;border-radius:10px;z-index:3}
 .speed{display:flex;gap:2px}
+.fsb{background:none;border:1px solid transparent;border-radius:7px;padding:4px 7px;cursor:pointer;color:var(--muted);display:grid;place-items:center}
+.fsb:hover{color:var(--ink)}
+.fsb svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .speed button{flex:1}
 .speed button{background:none;border:1px solid transparent;padding:4px 11px;border-radius:7px;cursor:pointer;font-weight:700;font-size:14px;line-height:1.2;font-variant-numeric:tabular-nums;color:var(--muted)}
 .speed button:hover{color:var(--ink)}
@@ -75,7 +78,7 @@ button:focus-visible{outline:2px solid var(--sodium);outline-offset:2px}
 .rbtn{background:var(--panel-2);border:1px solid var(--line);padding:3px 9px;border-radius:3px;cursor:pointer;font-weight:600}
 
 /* map + overlays */
-.mapwrap{position:relative;min-height:0;min-width:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;overflow:clip;background:#0b0c08;touch-action:none}
+.mapwrap{position:relative;min-height:0;min-width:0;border:0;border-radius:0;overflow:hidden;overflow:clip;background:#0b0c08;touch-action:none}
 #map{position:absolute;inset:0;display:block;cursor:crosshair}
 .float{position:absolute;background:linear-gradient(160deg,var(--glass-tint),transparent 45%),var(--glass);border:1px solid var(--glass-edge);border-radius:10px;
   box-shadow:inset 0 1px 0 var(--glass-hi),inset 0 0 0 1px rgba(0,0,0,.25),0 10px 30px rgba(0,0,0,.45);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur)}
@@ -87,7 +90,7 @@ button:focus-visible{outline:2px solid var(--sodium);outline-offset:2px}
 .order span{font-size:14px;color:var(--muted);line-height:1.3}
 .order.min span{display:none}
 
-.toasts{position:absolute;top:calc(var(--top,10px) + 34px);left:10px;width:min(300px,calc(100% - 20px));max-height:calc(100% - var(--top,10px) - 150px);overflow:hidden;display:flex;flex-direction:column;gap:4px;pointer-events:none;align-items:stretch}
+.toasts{position:absolute;top:calc(var(--top,10px) + 34px);left:max(12px,calc(env(safe-area-inset-left,0px) + 8px));width:min(300px,calc(100% - 20px));max-height:calc(100% - var(--top,10px) - 150px);overflow:hidden;display:flex;flex-direction:column;gap:4px;pointer-events:none;align-items:stretch}
 .toasts .toast{font-size:13.5px}
 .toast{background:linear-gradient(160deg,var(--glass-tint),transparent 50%),var(--glass);border:1px solid var(--glass-edge);border-left-width:3px;border-radius:8px;padding:5px 11px;font-size:14px;line-height:1.3;box-shadow:inset 0 1px 0 var(--glass-hi),0 6px 18px rgba(0,0,0,.4);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);text-shadow:0 1px 2px rgba(0,0,0,.6);transition:opacity .4s}
 .toast.good{border-left-color:var(--leaf)}
@@ -120,7 +123,7 @@ button:focus-visible{outline:2px solid var(--sodium);outline-offset:2px}
 .hint .bad{border-color:var(--blood);color:#ffb3a5}
 
 /* dock */
-.dockwrap{position:absolute;left:10px;right:10px;bottom:10px;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
+.dockwrap{position:absolute;left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));bottom:max(10px,calc(env(safe-area-inset-bottom,0px) + 6px));display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
 .dockwrap>*{pointer-events:auto}
 .dockwrap .float{position:relative}
 .dock{display:flex;align-items:stretch;gap:2px;padding:4px;max-width:100%;overflow-x:auto;scrollbar-width:none}
@@ -220,7 +223,7 @@ button:focus-visible{outline:2px solid var(--sodium);outline-offset:2px}
 .rail>*{pointer-events:auto}
 .rail .clock{padding:2px 0;text-shadow:0 1px 2px #000,0 0 10px rgba(0,0,0,.7)}
 .rail .clock .cyc{box-shadow:0 1px 3px rgba(0,0,0,.6)}
-.res{position:fixed;top:calc(env(safe-area-inset-top,0px) + 18px);right:calc(max(16px,env(safe-area-inset-right,0px)) + 8px);flex-direction:column;flex-wrap:nowrap;gap:5px;z-index:5}
+.res{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);right:max(12px,calc(env(safe-area-inset-right,0px) + 8px));flex-direction:column;flex-wrap:nowrap;gap:5px;z-index:5}
 .res .chip{width:108px;box-sizing:border-box;background:linear-gradient(160deg,var(--glass-tint),transparent 45%),var(--glass);border:1px solid var(--glass-edge);
   -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);box-shadow:inset 0 1px 0 var(--glass-hi),0 6px 16px rgba(0,0,0,.35)}
 .res .chip.pop{background:linear-gradient(160deg,rgba(143,181,83,.18),transparent 55%),var(--glass)}
@@ -258,7 +261,7 @@ button:focus-visible{outline:2px solid var(--sodium);outline-offset:2px}
 
   <main class="mapwrap" id="mapwrap">
     <canvas id="map" aria-label="Camp map"></canvas>
-    <div class="float speedbar"><div class="speed" role="group" aria-label="Game speed"><button data-speed="0" id="sp0" aria-label="Pause">❚❚</button><button data-speed="1" id="sp1">1×</button><button data-speed="2" id="sp2">2×</button><button data-speed="3" id="sp3">3×</button></div></div>
+    <div class="float speedbar"><div class="speed" role="group" aria-label="Game speed"><button data-speed="0" id="sp0" aria-label="Pause">❚❚</button><button data-speed="1" id="sp1">1×</button><button data-speed="2" id="sp2">2×</button><button data-speed="3" id="sp3">3×</button></div><button class="fsb" id="fsBtn" title="Fullscreen (F)" aria-label="Toggle fullscreen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>
     <div class="toasts" id="toasts" aria-live="polite"></div>
     <section class="float insp" id="insp" hidden></section>
     <div class="hint" id="hint"></div>
@@ -1862,6 +1865,7 @@ window.addEventListener('keydown',e=>{
   else if(k==='escape'){if(!$('drawer').hidden)toggleDrawer();else if(openCat){openCat=null;buildDock();}else if(S.sel||S.selP){S.sel=null;S.selP=null;}else setTool('hand');}
   else if(k==='q')setTool('hand');
   else if(k==='x')setTool('demolish');
+  else if(k==='f'&&fsOK)toggleFS();
   else if(k==='c')setTool('chop');
   else if(k==='v')setTool('scav');
   else if(k===' '){e.preventDefault();setSpeed(speed===0?1:0);}
@@ -1908,6 +1912,12 @@ function setTool(t){
 }
 function setSpeed(s){speed=clamp(s,0,3);[0,1,2,3].forEach(i=>$('sp'+i).classList.toggle('on',i===speed));}
 $('rail').addEventListener('wheel',e=>{const r=$('rail');if(r.scrollWidth>r.clientWidth&&Math.abs(e.deltaY)>Math.abs(e.deltaX)){r.scrollLeft+=e.deltaY;e.preventDefault();}},{passive:false});
+const fsEl=document.documentElement,fsOK=!!(fsEl.requestFullscreen||fsEl.webkitRequestFullscreen)&&(document.fullscreenEnabled!==false);
+if(!fsOK)$('fsBtn').hidden=true;
+function toggleFS(){try{const on=document.fullscreenElement||document.webkitFullscreenElement;
+  const pr=on?(document.exitFullscreen||document.webkitExitFullscreen).call(document):(fsEl.requestFullscreen||fsEl.webkitRequestFullscreen).call(fsEl);
+  if(pr&&pr.catch)pr.catch(()=>say('Fullscreen is not available here',true));}catch(e){say('Fullscreen is not available here',true);}}
+$('fsBtn').addEventListener('click',toggleFS);
 document.querySelectorAll('.speed button').forEach(b=>b.addEventListener('click',()=>setSpeed(+b.dataset.speed)));
 $('res').innerHTML=`<span class="chip pop" id="c-pop" title="Survivors and beds"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">${SVG.crew}</svg><b id="survLbl">3/4</b></span>`+
   `<span class="chip" id="c-pow" hidden title="Power: supply / demand"><svg viewBox="0 0 24 24" width="16" height="16" fill="#f1c046" stroke="none" aria-hidden="true"><path d="M13 2L4 14h6l-1 8 9-12h-6z"/></svg><b id="r-pow">0/0</b><em id="r-bat">POWER</em></span>`+
@@ -1970,7 +1980,7 @@ function renderDrawer(){
       <p>At night everyone falls back to the HQ (or up a Watchtower) and shoots. At dawn each survivor eats one meal; spare meals and a free bed bring new people in. More people unlock more buildings, and at ${TIER[3]} survivors machines and conveyors open up.</p>
       <h4>Controls</h4><div class="keys"><kbd>1 2 3</kbd><span>Game speed · <kbd>0</kbd> or Space pauses</span><kbd>4</kbd><span>Camp</span><kbd>5</kbd><span>Crafting</span><kbd>6</kbd><span>Defense</span><kbd>7</kbd><span>Machines</span><kbd>8</kbd><span>Power</span>
       <kbd>Q</kbd><span>Select · Esc cancels</span><kbd>C</kbd><span>Chop</span><kbd>V</kbd><span>Scavenge</span><kbd>X</kbd><span>Demolish</span><kbd>R</kbd><span>Rotate (Shift+R back)</span>
-      <kbd>Tab</kbd><span>This panel</span><kbd>WASD</kbd><span>Pan · wheel or pinch zooms · right-drag pans</span></div>
+      <kbd>F</kbd><span>Fullscreen</span><kbd>Tab</kbd><span>This panel</span><kbd>WASD</kbd><span>Pan · wheel or pinch zooms · right-drag pans</span></div>
       <h4>Camp</h4><p>Day ${S.day} · ${S.stats.kills} zombies put down · ${S.dlog.length} belt deliveries in the last minute.</p>
       <div class="btns"><button class="btn" id="guideBtn">Show quick guide</button><button class="btn danger" id="newBtn">${armT>0?'Tap again to abandon this camp':'New camp'}</button></div></div>`;
     $('guideBtn').onclick=()=>{toggleDrawer();window.__introPics&&window.__introPics();$('intro').hidden=false;setSpeed(0);$('introGo').focus();};
