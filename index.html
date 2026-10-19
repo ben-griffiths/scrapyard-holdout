@@ -66,9 +66,10 @@ button:focus-visible{outline:2px solid var(--sodium);outline-offset:2px}
 .right{display:flex;gap:8px;margin-left:auto;align-items:center;flex:none;position:sticky;right:0;z-index:1}
 @media (max-width:1560px){.brand{display:none}}
 @media (max-width:1280px){.chip{min-width:0;padding:3px 9px 3px 7px}.chip b{font-size:18px}}
-.speed{display:flex;gap:2px;padding:2px;margin-top:2px;border-radius:8px;background:rgba(0,0,0,.28);border:1px solid rgba(255,250,230,.08)}
+.speedbar{top:calc(var(--top,10px) - 6px);left:8px;padding:3px;border-radius:10px;z-index:3}
+.speed{display:flex;gap:2px}
 .speed button{flex:1}
-.speed button{background:none;border:1px solid transparent;padding:2px 6px;border-radius:6px;cursor:pointer;font-weight:700;font-size:13px;line-height:1.2;font-variant-numeric:tabular-nums;color:var(--muted)}
+.speed button{background:none;border:1px solid transparent;padding:4px 11px;border-radius:7px;cursor:pointer;font-weight:700;font-size:14px;line-height:1.2;font-variant-numeric:tabular-nums;color:var(--muted)}
 .speed button:hover{color:var(--ink)}
 .speed button.on{background:var(--sodium);color:#1b1a10}
 .rbtn{background:var(--panel-2);border:1px solid var(--line);padding:3px 9px;border-radius:3px;cursor:pointer;font-weight:600}
@@ -86,7 +87,7 @@ button:focus-visible{outline:2px solid var(--sodium);outline-offset:2px}
 .order span{font-size:14px;color:var(--muted);line-height:1.3}
 .order.min span{display:none}
 
-.toasts{position:absolute;top:var(--top,10px);left:10px;width:min(300px,calc(100% - 20px));max-height:calc(100% - var(--top,10px) - 150px);overflow:hidden;display:flex;flex-direction:column;gap:4px;pointer-events:none;align-items:stretch}
+.toasts{position:absolute;top:calc(var(--top,10px) + 34px);left:10px;width:min(300px,calc(100% - 20px));max-height:calc(100% - var(--top,10px) - 150px);overflow:hidden;display:flex;flex-direction:column;gap:4px;pointer-events:none;align-items:stretch}
 .toasts .toast{font-size:13.5px}
 .toast{background:linear-gradient(160deg,var(--glass-tint),transparent 50%),var(--glass);border:1px solid var(--glass-edge);border-left-width:3px;border-radius:8px;padding:5px 11px;font-size:14px;line-height:1.3;box-shadow:inset 0 1px 0 var(--glass-hi),0 6px 18px rgba(0,0,0,.4);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);text-shadow:0 1px 2px rgba(0,0,0,.6);transition:opacity .4s}
 .toast.good{border-left-color:var(--leaf)}
@@ -199,12 +200,17 @@ button:focus-visible{outline:2px solid var(--sodium);outline-offset:2px}
 .over p{margin:0;max-width:40ch;font-size:17px}
 
 .intro{position:absolute;inset:0;z-index:7;display:grid;place-items:center;background:rgba(8,10,6,.45);padding:16px}
-.intro .float{position:relative;width:min(360px,100%);padding:18px 20px 16px;--glass:rgba(24,27,19,.8)}
+.intro .float{position:relative;width:min(440px,100%);padding:18px 20px 16px;--glass:rgba(24,27,19,.8)}
 .intro h2{font-family:var(--display);font-weight:400;font-size:26px;margin:0 0 2px;color:var(--sodium);line-height:1}
 .intro .sub{margin:0 0 12px;color:var(--muted);font-size:14px}
 .intro ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px;counter-reset:s}
-.intro li{display:grid;grid-template-columns:22px 1fr;gap:8px;font-size:15px;line-height:1.3;counter-increment:s}
-.intro li::before{content:counter(s);width:20px;height:20px;border-radius:50%;background:rgba(241,192,70,.15);color:var(--sodium);font-weight:700;font-size:12px;display:grid;place-items:center}
+.intro li{display:grid;grid-template-columns:118px 1fr;gap:12px;align-items:center;font-size:14.5px;line-height:1.3;counter-increment:s}
+.intro .pic{position:relative;display:flex;align-items:center;justify-content:center;gap:4px;height:46px;border-radius:9px;background:rgba(0,0,0,.28);border:1px solid rgba(255,250,230,.08)}
+.intro .pic img{width:32px;height:32px;image-rendering:pixelated;display:block}
+.intro .pic .arw{color:var(--muted);font-size:13px}
+.intro .mdb{display:inline-flex;flex-direction:column;align-items:center;gap:0;padding:2px 5px;border-radius:5px;border:1px solid rgba(241,192,70,.6);background:rgba(241,192,70,.14);color:var(--sodium);font-size:10px;font-weight:700;line-height:1.1}
+.intro .mdb svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.intro li .pic::before{content:counter(s);position:absolute;top:-6px;left:-6px;width:17px;height:17px;border-radius:50%;background:var(--sodium);color:#1b1a10;font-weight:700;font-size:11px;display:grid;place-items:center}
 .intro kbd{font-family:var(--ui);font-weight:700;background:rgba(255,250,230,.1);border:1px solid rgba(255,250,230,.18);border-radius:4px;padding:0 5px}
 .intro .go{margin-top:14px;width:100%;padding:8px;border-radius:8px;border:0;background:var(--sodium);color:#1b1a10;font-weight:700;font-size:16px;cursor:pointer}
 .intro .foot{margin:8px 0 0;text-align:center;color:var(--muted);font-size:12.5px}
@@ -230,12 +236,13 @@ button:focus-visible{outline:2px solid var(--sodium);outline-offset:2px}
 <div class="app">
   <header class="rail" id="rail">
     <div class="brand">SCRAPYARD HOLDOUT</div>
-    <div class="clock"><div class="top"><span class="day" id="dayLbl">Day 1</span><span class="phase" id="phaseLbl">Daylight</span></div><div class="cyc"><i id="cycBar"></i></div><div class="speed" role="group" aria-label="Game speed"><button data-speed="0" id="sp0" aria-label="Pause">❚❚</button><button data-speed="1" id="sp1">1×</button><button data-speed="2" id="sp2">2×</button><button data-speed="3" id="sp3">3×</button></div></div>
+    <div class="clock"><div class="top"><span class="day" id="dayLbl">Day 1</span><span class="phase" id="phaseLbl">Daylight</span></div><div class="cyc"><i id="cycBar"></i></div></div>
     <div class="res" id="res"></div>
   </header>
 
   <main class="mapwrap" id="mapwrap">
     <canvas id="map" aria-label="Camp map"></canvas>
+    <div class="float speedbar"><div class="speed" role="group" aria-label="Game speed"><button data-speed="0" id="sp0" aria-label="Pause">❚❚</button><button data-speed="1" id="sp1">1×</button><button data-speed="2" id="sp2">2×</button><button data-speed="3" id="sp3">3×</button></div></div>
     <div class="toasts" id="toasts" aria-live="polite"></div>
     <section class="float insp" id="insp" hidden></section>
     <div class="hint" id="hint"></div>
@@ -255,13 +262,13 @@ button:focus-visible{outline:2px solid var(--sodium);outline-offset:2px}
         <h2 id="introT">Hold the yard</h2>
         <p class="sub">Your crew does the work. You give the orders.</p>
         <ol>
-          <li><span>Drag over trees with <kbd>C</kbd> and scrap with <kbd>V</kbd>. Crew gather it.</span></li>
-          <li><span>Pick a building from the bottom bar. Crew fetch materials and build it.</span></li>
-          <li><span>Each person eats a meal at dawn. Plant Gardens and build a Campfire.</span></li>
-          <li><span>Zombies come at night. Wall up before dark. More survivors unlock more.</span></li>
+          <li><span class="pic" id="ip1"></span><span>Click <b>Chop</b> in the bottom bar and drag over trees (<kbd>C</kbd>). Use <b>Scavenge</b> on scrap (<kbd>V</kbd>). Your crew gathers it.</span></li>
+          <li><span class="pic" id="ip2"></span><span>Open <b>Camp</b>, <b>Crafting</b> or <b>Defense</b> in the bar (<kbd>4</kbd>–<kbd>8</kbd>) and click the map to place. Crew fetch materials and build.</span></li>
+          <li><span class="pic" id="ip3"></span><span>Everyone eats a meal at dawn. Build <b>Garden Plots</b> and a <b>Campfire</b>.</span></li>
+          <li><span class="pic" id="ip4"></span><span>Zombies come at night. Put up <b>Barricades</b> before dark. More survivors unlock more.</span></li>
         </ol>
         <button class="go" id="introGo">Start</button>
-        <p class="foot"><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> speed · <kbd>Space</kbd> pause · <kbd>Tab</kbd> crew &amp; guide</p>
+        <p class="foot">Speed and pause sit just under the top bar (<kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> · <kbd>Space</kbd>) · <b>Crew</b> button for jobs and the guide (<kbd>Tab</kbd>)</p>
       </div>
     </div>
     <div class="over" id="over" hidden>
@@ -1947,7 +1954,7 @@ function renderDrawer(){
       <kbd>Tab</kbd><span>This panel</span><kbd>WASD</kbd><span>Pan · wheel or pinch zooms · right-drag pans</span></div>
       <h4>Camp</h4><p>Day ${S.day} · ${S.stats.kills} zombies put down · ${S.dlog.length} belt deliveries in the last minute.</p>
       <div class="btns"><button class="btn" id="guideBtn">Show quick guide</button><button class="btn danger" id="newBtn">${armT>0?'Tap again to abandon this camp':'New camp'}</button></div></div>`;
-    $('guideBtn').onclick=()=>{toggleDrawer();$('intro').hidden=false;setSpeed(0);$('introGo').focus();};
+    $('guideBtn').onclick=()=>{toggleDrawer();window.__introPics&&window.__introPics();$('intro').hidden=false;setSpeed(0);$('introGo').focus();};
     $('newBtn').onclick=()=>{if(armT>0){armT=0;try{localStorage.removeItem(SAVE_KEY);}catch(e){}$('over').hidden=true;newGame();resetUi();toggleDrawer();}else{armT=3;renderDrawer();}};}
 }
 $('dbody').addEventListener('click',e=>{
@@ -2083,7 +2090,13 @@ function boot(data){
   if(!ok){try{const s=localStorage.getItem(SAVE_KEY);if(s)ok=restore(s);}catch(e){}}
   if(!ok||S.over)newGame();
   let seen=false;try{seen=localStorage.getItem('scrapyard-intro-2')==='1';}catch(e){}
-  if(!ok&&!seen){$('intro').hidden=false;setTimeout(()=>{setSpeed(0);$('introGo').focus();},0);}
+  const introPics=()=>{const crop=t=>{let best=null,bd=1e9;for(let i=0;i<W*H;i++){if(S.ter[i]!==t)continue;const x=i%W,y=(i/W)|0,d=Math.hypot(x-S.hq.x,y-S.hq.y);if(d<bd){bd=d;best=[x,y];}}
+      if(!best||!ground)return '';const c=document.createElement('canvas');c.width=c.height=24;const g=c.getContext('2d');g.drawImage(ground,best[0]*16-4,best[1]*16-4,24,24,0,0,24,24);return `<img src="${c.toDataURL()}" alt="">`;};
+    const btn=(k,l)=>`<span class="mdb">${svg(k)}${l}</span>`,ic=k=>`<img src="${iconURL(k)}" alt="">`,ar='<span class="arw">›</span>';
+    $('ip1').innerHTML=btn('chop','Chop')+ar+crop(1)+crop(2);$('ip2').innerHTML=btn('Camp','Camp')+ar+ic('sawhorse')+ic('depot');
+    $('ip3').innerHTML=ic('garden')+ic('garden')+ic('campfire');$('ip4').innerHTML=ic('wall')+ic('wall')+ic('trap');};
+  window.__introPics=introPics;
+  if(!ok&&!seen){introPics();$('intro').hidden=false;setTimeout(()=>{setSpeed(0);$('introGo').focus();},0);}
   const closeIntro=()=>{if($('intro').hidden)return;$('intro').hidden=true;try{localStorage.setItem('scrapyard-intro-2','1');}catch(e){}setSpeed(1);};
   $('introGo').onclick=closeIntro;$('intro').addEventListener('click',e=>{if(e.target.id==='intro')closeIntro();});
   window.addEventListener('keydown',e=>{if(!$('intro').hidden&&(e.key==='Enter'||e.key==='Escape')){e.preventDefault();e.stopImmediatePropagation();closeIntro();}},true);
