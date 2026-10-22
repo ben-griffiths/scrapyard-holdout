@@ -372,7 +372,7 @@ const USE={saw:2,picker:2,mill:3,cookline:2,forge:4,press:3,unloader:1,sniper:2,
 for(const k in USE){DEF[k].use=USE[k];DEF[k].d+=` Needs ${USE[k]} power.`;}
 const PNODE={hq:{out:4,reach:6,link:6},gen:{out:10,reach:3.5,link:3.5},solar:{out:3,reach:3.5,link:3.5},battery:{cap:400,reach:3.5,link:3.5},pole:{reach:4,link:7}};
 const TARGET={plank:30,meal:30,plate:20,ammo:80};
-const ST={nopower:'No power',lowpower:'Low power',nofuel:'Out of fuel',ok:'Working',wait:'Waiting',block:'Output full',empty:'Storage is out of it',noammo:'Out of ammo',idle:'Idle',frame:'Blueprint'};
+const ST={off:'Switched off',nopower:'No power',lowpower:'Low power',nofuel:'Out of fuel',ok:'Working',wait:'Waiting',block:'Output full',empty:'Storage is out of it',noammo:'Out of ammo',idle:'Idle',frame:'Blueprint'};
 const WORKS=[['build','Build'],['farm','Farm'],['craft','Craft'],['haul','Haul'],['chop','Chop'],['scav','Scavenge']];
 const NAMES=['Mara','Tobias','Ines','Dex','Priya','Owen','Yusuf','Hana','Rook','Lena','Cal','Nadia','Ezra','Sol','Bea','Kit','Jonah','Remy','Ada','Milo','Faye','Teo','Wren','Gus','Ivy','Abe','Noor','Finn','Zara','Luca','Odile','Sami','Tess','Bram','Juno','Pell'];
 const SHIRTS=['#4f6d8c','#8c4f4f','#6d8c4f','#8c7a4f','#6a4f8c','#4f8c86','#8c5f3a','#5f5f66'];
@@ -436,7 +436,7 @@ function newGame(seed){
   centerCam();
 }
 function setGrid(b,v){for(let j=0;j<(b.h||1);j++)for(let i=0;i<(b.w||1);i++)S.grid[(b.y+j)*W+b.x+i]=v;}
-function serialize(){const o={};for(const k in S){if(['grid','ter','deco','hq','fx','_nets','links'].includes(k))continue;o[k]=S[k];}return JSON.stringify(o);}
+function serialize(){const o={};for(const k in S){if(['grid','ter','deco','hq','fx','_nets','links','_noise'].includes(k))continue;o[k]=S[k];}return JSON.stringify(o);}
 function restore(str){
   try{const o=JSON.parse(str);if(!o||o.v!==2||!Array.isArray(o.b)||!Array.isArray(o.pawns))return false;
     H=o.mh||32;const m=genMap(o.seed);S=Object.assign(o,{ter:m.ter,deco:m.deco,grid:new Array(W*H).fill(null),fx:[]});RES={};
@@ -546,6 +546,8 @@ const crewMult=()=>1+.3*Math.min(3,built('armory')),crewRange=()=>.5*Math.min(3,
 function nearestZ(x,y,r){let best=null,bd=r;for(const z of S.z){const d=Math.hypot(z.x-x,z.y-y);if(d<bd){bd=d;best=z;}}return best;}
 function updateB(b,dt){
   if(b.frame)return;
+  if(b.bang>0)b.bang-=dt;
+  if(b.off){b.st='off';return;}
   const D=DEF[b.type];
   if(D.use){const pw=b.pw||0;if(pw<.03){b.st='nopower';if(b.outb&&b.outb.length){const f=front(b);if(tryInsert(f[0],f[1],b.outb[0],b.x,b.y))b.outb.shift();}return;}dt*=pw;}
   switch(b.type){
@@ -561,14 +563,14 @@ function updateB(b,dt){
       else b.st='block';break;}
     case 'turret':case 'sniper':case 'mortar':{const G=GUN[b.type],cx=b.x+.5,cy=b.y+.5;
       b.cd-=dt;let tz=null;
-      if(G.tough){let best=-1;for(const z of S.z){const d=Math.hypot(z.x-cx,z.y-cy);if(d<=G.r&&z.hp>best){best=z.hp;tz=z;}}}
+      if(G.tough){let best=-1;for(const z of S.z){const d=Math.hypot(z.x-cx,z.y-cy),sc=z.hp+(z.k==='screamer'?1e6:0);if(d<=G.r&&sc>best){best=sc;tz=z;}}}
       else if(G.min){let bd=1e9;for(const z of S.z){const d=Math.hypot(z.x-cx,z.y-cy);if(d>=G.min&&d<=G.r){let n=0;for(const o of S.z)if(Math.hypot(o.x-z.x,o.y-z.y)<1.5)n++;const sc=d-n*3;if(sc<bd){bd=sc;tz=z;}}}}
       else tz=nearestZ(cx,cy,G.r);
       if(tz){b.ang=Math.atan2(tz.y-cy,tz.x-cx);
         if(b.cd<=0){let ok=false;if(b.ammo>=G.am){b.ammo-=G.am;ok=true;}else if(b.ammo+S.stock.ammo>=G.am){S.stock.ammo-=G.am-b.ammo;b.ammo=0;ok=true;}
-          if(ok){b.cd=G.cd;b.st='ok';SFX(b.type==='sniper'?'sniper':b.type==='mortar'?'mortarFire':'gun',cx,cy);
+          if(ok){b.cd=G.cd;b.st='ok';b.bang=3;SFX(b.type==='sniper'?'sniper':b.type==='mortar'?'mortarFire':'gun',cx,cy);
             if(G.splash){S.shells=S.shells||[];S.shells.push({x:tz.x,y:tz.y,t:.7,fx:cx,fy:cy});S.fx.push({k:'shell',x1:cx,y1:cy,x2:tz.x,y2:tz.y,life:.7,max:.7});}
-            else{hurt(tz,G.dmg);let ex=tz.x,ey=tz.y;
+            else{hurt(tz,G.dmg*(tz.k==='crawler'&&b.type==='turret'?.4:1));let ex=tz.x,ey=tz.y;
               if(G.pierce){const dx=tz.x-cx,dy=tz.y-cy,L=Math.hypot(dx,dy)||1,ux=dx/L,uy=dy/L;let n=0;
                 const behind=S.z.filter(z=>z!==tz).map(z=>{const rx=z.x-cx,ry=z.y-cy,t=rx*ux+ry*uy;return{z,t,off:Math.abs(rx*uy-ry*ux)};}).filter(o=>o.t>L&&o.t<L+4&&o.off<.5).sort((a,b)=>a.t-b.t);
                 for(const o of behind){if(n>=G.pierce)break;hurt(o.z,G.dmg*.6);n++;ex=o.z.x;ey=o.z.y;}
@@ -580,7 +582,7 @@ function updateB(b,dt){
       const near=S.z.filter(z=>Math.hypot(z.x-cx,z.y-cy)<=2.5);
       if(near.length){b.burn=(b.burn||0)-dt;
         if(b.burn<=0){if((b.fuel||0)>0){b.fuel--;b.burn=2;}else if(S.stock.wood>0){S.stock.wood--;b.burn=2;}else{b.st='nofuel';break;}}
-        b.st='ok';SFX('flame',cx,cy);const t=near[0];b.ang=Math.atan2(t.y-cy,t.x-cx);for(const z of near)hurt(z,22*dt);
+        b.st='ok';b.bang=2;SFX('flame',cx,cy);const t=near[0];b.ang=Math.atan2(t.y-cy,t.x-cx);for(const z of near)hurt(z,22*dt);
         if(Math.random()<dt*25)S.fx.push({k:'flame',x:cx+Math.cos(b.ang)*(.4+Math.random()*1.8)+(Math.random()-.5)*.8,y:cy+Math.sin(b.ang)*(.4+Math.random()*1.8)+(Math.random()-.5)*.8,life:.35,max:.35});}
       else b.st=((b.fuel||0)>0||S.stock.wood>0||b.burn>0)?'ok':'nofuel';break;}
     case 'infirmary':{for(const p of S.pawns)if(p.hp<100&&Math.hypot(p.x-(b.x+.5),p.y-(b.y+.5))<=3)p.hp=Math.min(100,p.hp+10*dt);b.st='ok';break;}
@@ -764,20 +766,53 @@ function killPawn(p){
 }
 
 /* ---------- zombies & cycle ---------- */
+const ZT={
+  walker:{n:'Walker',hp:1,sp:1,r:7,bite:10,w:6,col:'#55613f',head:'#75825a',arm:'#4a5535'},
+  runner:{n:'Runner',hp:.5,sp:1.85,r:6,bite:7,w:3,from:3,col:'#6b7448',head:'#929d6a',arm:'#5a6340',
+    hello:'Runners are here: fast and fragile. Any gap in the walls and they are through it.',dusk:'Fast footsteps in the dark.'},
+  brute:{n:'Brute',hp:3.6,sp:.62,r:10.5,bite:36,w:1.2,from:5,col:'#3f4a2e',head:'#5d6a43',arm:'#343e27',
+    hello:'A Brute is coming. Slow and huge, it walks straight at the nearest building and smashes through walls. Layer your defences.',dusk:'Something heavy is moving out there.'},
+  crawler:{n:'Crawler',hp:.8,sp:.8,r:6,bite:8,w:2,from:7,col:'#4f4934',head:'#6f694a',arm:'#3f3a2a',
+    hello:'Crawlers: low to the ground, they slide under turret fire and ignore spikes and wire. Flame Vents, snipers and the crew still get them.',dusk:'Dragging sounds, low to the ground.'},
+  screamer:{n:'Screamer',hp:1.3,sp:.9,r:7,bite:6,w:.8,from:9,col:'#7b8170',head:'#a5aa94',arm:'#626856',
+    hello:'Screamers: their shriek pulls every zombie nearby onto what they are hunting. Snipers shoot them first.',dusk:'A shriek carries on the wind.'}};
+const ZK=Object.keys(ZT);
+/* what makes noise (or light) at night, and how loud: zombies hear a source from loud×4 tiles */
+const LOUD={gen:7,saw:3.5,picker:3.5,mill:4,cookline:4,forge:4,press:4,turret:4,sniper:6,mortar:7,flamer:3,flood:5};
+const SWITCH=Object.keys(LOUD);
+function noiseNow(b){if(b.frame||b.off)return 0;const L=LOUD[b.type];if(!L)return 0;
+  if(b.type==='gen')return b.run?L:0;
+  if(b.type==='flood')return darkness()>.25?L:0;
+  if(GUN[b.type]||b.type==='flamer')return b.bang>0?L:0;
+  return b.st==='ok'?L:0;}
+function noiseTick(){const hq=S.hq,src=[{x:hq.x+1,y:hq.y+1,l:3,id:hq.id,hq:1}];
+  for(const b of S.b){const l=noiseNow(b);if(l){const c=ctr(b);src.push({x:c[0],y:c[1],l,id:b.id,light:b.type==='flood'});}}
+  S._noise=src;}
+function pickTarget(z){
+  if(z.k==='brute'){let best=null,bd=9;for(const b of S.b){if(b.frame||DEF[b.type].walk)continue;const c=ctr(b),d=Math.hypot(c[0]-z.x,c[1]-z.y);if(d<bd){bd=d;best=b;}}
+    if(best){const c=ctr(best);return{x:c[0],y:c[1],id:best.id};}}
+  let best=null,bs=-1;for(const s of S._noise||[]){const d=Math.hypot(s.x-z.x,s.y-z.y);if(!s.hq&&d>s.l*4)continue;const sc=s.l/(d+4);if(sc>bs){bs=sc;best=s;}}
+  return best?{x:best.x,y:best.y,id:best.id}:null;}
 function spawnZombie(){
   const sides=S.sides&&S.sides.length?S.sides:[0];
   const side=sides[Math.floor(Math.random()*sides.length)],r=Math.random();
   let x,y;if(side===0){x=r*W;y=-.6;}else if(side===1){x=W+.6;y=r*H;}else if(side===2){x=r*W;y=H+.6;}else{x=-.6;y=r*H;}
-  const hp=26+S.day*7;
-  S.z.push({x,y,hp,max:hp,sp:Math.min(1.1,.5+S.day*.04)*(.85+Math.random()*.3),w:Math.random()*6.28,ang:0});
+  const pool=ZK.filter(k=>S.day>=(ZT[k].from||0)&&!(k==='screamer'&&(S.nScr||0)>=1+Math.floor(S.day/6)));
+  let tot=0;const wt=pool.map(k=>{const w=ZT[k].w*(S.theme===k?3:1);tot+=w;return w;});
+  let q=Math.random()*tot,k='walker';for(let i=0;i<pool.length;i++){q-=wt[i];if(q<=0){k=pool[i];break;}}
+  if(k==='screamer')S.nScr=(S.nScr||0)+1;
+  S.seenZ=S.seenZ||{};if(!S.seenZ[k]&&ZT[k].hello){S.seenZ[k]=1;log(ZT[k].hello,'bad');}
+  const t=ZT[k],hp=(26+S.day*7)*t.hp;
+  S.z.push({k,x,y,hp,max:hp,sp:Math.min(1.1,.5+S.day*.04)*(.85+Math.random()*.3)*t.sp,w:Math.random()*6.28,ang:0,rt:Math.random(),sc:2+Math.random()*3});
 }
 function updateZ(dt){
-  const hx=S.hq.x+1,hy=S.hq.y+1,dark=darkness()>.25,floods=dark?S.b.filter(b=>b.type==='flood'&&!b.frame):[];
+  const hx=S.hq.x+1,hy=S.hq.y+1,dark=darkness()>.25,floods=dark?S.b.filter(b=>b.type==='flood'&&!b.frame&&!b.off):[];
+  S._nt=(S._nt||0)-dt;if(S._nt<=0||!S._noise){S._nt=.5;noiseTick();}
   if(S.shells)for(let i=S.shells.length-1;i>=0;i--){const sh=S.shells[i];sh.t-=dt;if(sh.t>0)continue;S.shells.splice(i,1);
     SFX('boom',sh.x,sh.y);for(const z of S.z)if(Math.hypot(z.x-sh.x,z.y-sh.y)<=1.5)hurt(z,40);S.fx.push({k:'boom',x:sh.x,y:sh.y,life:.45,max:.45});}
   for(let i=S.z.length-1;i>=0;i--){const z=S.z[i];
     z.lit=floods.some(f=>Math.hypot(f.x+.5-z.x,f.y+.5-z.y)<=5);let slow=z.lit?.7:1;
-    const on=bAt(Math.floor(z.x),Math.floor(z.y));if(on&&on.type==='wire'&&!on.frame){slow*=.4;SFX('shred',z.x,z.y);hurt(z,4*dt);on.hp-=.6*dt;if(on.hp<=0)destroy(on,true);}
+    const on=bAt(Math.floor(z.x),Math.floor(z.y));if(on&&on.type==='wire'&&!on.frame&&z.k!=='crawler'){slow*=.4;SFX('shred',z.x,z.y);hurt(z,4*dt);on.hp-=.6*dt;if(on.hp<=0)destroy(on,true);}
     if(!S.night){// dawn: retreat to the nearest map edge, then fade into the treeline
       if(!z.flee){z.flee=1;z.fa=1;z.ft=0;const e=[[z.x,-1.5],[W+1.5,z.y],[z.x,H+1.5],[-1.5,z.y]],dd=[z.y,W-z.x,H-z.y,z.x],k=dd.indexOf(Math.min(...dd));
         z.tx=e[k][0]+(Math.random()-.5)*4;z.ty=e[k][1];z.biting=false;z.fl=8+Math.random()*6;}
@@ -788,23 +823,34 @@ function updateZ(dt){
       const off=z.x<-.6||z.y<-.6||z.x>W+.6||z.y>H+.6;
       if(off||z.ft>(z.fl||10)||(z.stuck||0)>1.2)z.fading=1;
       if(z.fading){z.fa-=dt*1.4;if(Math.random()<dt*14)S.fx.push({k:'dust',x:z.x+(Math.random()-.5)*.6,y:z.y+(Math.random()-.5)*.6,life:.9,max:.9,r:Math.random()});}
-      const h2=bAt(Math.floor(z.x),Math.floor(z.y));if(h2&&h2.type==='trap'&&!h2.frame){hurt(z,20*dt);h2.hp-=1.5*dt;if(h2.hp<=0)destroy(h2,true);}
+      const h2=bAt(Math.floor(z.x),Math.floor(z.y));if(h2&&h2.type==='trap'&&!h2.frame&&z.k!=='crawler'){hurt(z,20*dt);h2.hp-=1.5*dt;if(h2.hp<=0)destroy(h2,true);}
       if(z.hp<=0){S.z.splice(i,1);S.stats.kills++;SFX('splat',z.x,z.y);S.fx.push({k:'splat',x:z.x,y:z.y,life:25,max:25,r:Math.random()});continue;}
       if(z.fa<=0){S.z.splice(i,1);S.fx.push({k:'dust',x:z.x,y:z.y,life:1.2,max:1.2,r:Math.random(),big:1});}
       continue;}
     let tp=null,td=.85;for(const p of S.pawns){if(p.up)continue;const d=Math.hypot(p.x-z.x,p.y-z.y);if(d<td){td=d;tp=p;}}
     if(Math.random()<dt*.07)SFX('groan',z.x,z.y);
+    const zt=ZT[z.k]||ZT.walker;
+    // choose what to go for: the loudest thing it can hear, the nearest building for brutes, or a screamer's call
+    if(z.lead>0)z.lead-=dt;if(z.fz>0)z.fz-=dt;if(z.yell>0)z.yell-=dt;
+    if(z.tg&&z.tg.id&&!byId(z.tg.id)){z.tg=null;z.rt=0;z.lead=0;}
+    z.rt=(z.rt||0)-dt;if(z.rt<=0&&!(z.lead>0)){z.rt=1.2+Math.random()*.8;z.tg=pickTarget(z);}
+    const gx=z.tg?z.tg.x:hx,gy=z.tg?z.tg.y:hy;
+    if(z.k==='screamer'&&Math.hypot(gx-z.x,gy-z.y)<16){z.sc=(z.sc||4)-dt;
+      if(z.sc<=0){z.sc=6;z.yell=.8;SFX('scream',z.x,z.y);S.fx.push({k:'scream',x:z.x,y:z.y,life:.9,max:.9});let n=0;
+        for(const o of S.z)if(o!==z&&!o.flee&&Math.hypot(o.x-z.x,o.y-z.y)<12){o.tg={x:gx,y:gy,id:z.tg&&z.tg.id};o.lead=6;o.fz=5;n++;}
+        if(n&&S.scrLog!==S.day){S.scrLog=S.day;log(`A Screamer is rallying ${n} of the dead.`,'bad');}}}
     if(tp){z.biting=true;SFX('bite',z.x,z.y);z.ang=Math.atan2(tp.y-z.y,tp.x-z.x);tp.hp-=9*dt;if(tp.hp<=0){killPawn(tp);if(S.over)return;}}
     else{
-      let dx=hx-z.x,dy=hy-z.y;const d=Math.hypot(dx,dy)||1;dx/=d;dy/=d;
-      const wob=Math.sin(S.clock*1.1+z.w)*.4*Math.min(1,d/3);
+      let dx=gx-z.x,dy=gy-z.y;const d=Math.hypot(dx,dy)||1;dx/=d;dy/=d;
+      if(z.tg&&d<.6){z.tg=null;z.rt=0;z.lead=0;}
+      const wob=Math.sin(S.clock*1.1+z.w)*(z.k==='runner'?.2:.4)*Math.min(1,d/3);
       const mx=dx-dy*wob,my=dy+dx*wob;z.ang=Math.atan2(my,mx);
-      const nx=z.x+mx*z.sp*slow*dt,ny=z.y+my*z.sp*slow*dt;
+      const sp=z.sp*slow*(z.fz>0?1.35:1),nx=z.x+mx*sp*dt,ny=z.y+my*sp*dt;
       const b=bAt(Math.floor(nx),Math.floor(ny));
-      if(b&&!b.frame&&!DEF[b.type].walk){b.hp-=10*dt;z.biting=true;SFX('thud',z.x,z.y);if(b.hp<=0){destroy(b,true);if(S.over)return;}}
+      if(b&&!b.frame&&!DEF[b.type].walk){b.hp-=zt.bite*dt;z.biting=true;SFX('thud',z.x,z.y);if(b.hp<=0){destroy(b,true);if(S.over)return;}}
       else{z.x=nx;z.y=ny;z.biting=false;}}
     const here=bAt(Math.floor(z.x),Math.floor(z.y));
-    if(here&&here.type==='trap'&&!here.frame){hurt(z,20*dt);SFX('shred',z.x,z.y);here.hp-=1.5*dt;if(here.hp<=0)destroy(here,true);}
+    if(here&&here.type==='trap'&&!here.frame&&z.k!=='crawler'){hurt(z,20*dt);SFX('shred',z.x,z.y);here.hp-=1.5*dt;if(here.hp<=0)destroy(here,true);}
     if(z.hp<=0){S.z.splice(i,1);S.stats.kills++;SFX('splat',z.x,z.y);S.fx.push({k:'splat',x:z.x,y:z.y,life:25,max:25,r:Math.random()});}
   }
 }
@@ -813,7 +859,9 @@ function cycle(dt){
   if(!S.night){
     if(!S.warned&&S.t>=DAY-15){S.warned=true;const f=Math.floor(Math.random()*4);
       S.sides=Math.random()<.5?[f]:[f,(f+1+Math.floor(Math.random()*3))%4];
-      log(`Dusk soon. Groans from the ${S.sides.map(s=>SIDES[s]).join(' and ')}.`,'warn');MUS.bell();}
+      const un=ZK.filter(k=>k!=='walker'&&S.day>=ZT[k].from);S.theme=un.length&&Math.random()<.7?un[Math.floor(Math.random()*un.length)]:null;S.nScr=0;
+      log(`Dusk soon. Groans from the ${S.sides.map(s=>SIDES[s]).join(' and ')}.${S.theme?' '+ZT[S.theme].dusk:''}`,'warn');MUS.bell();
+      if(!S.noiseTip&&S.b.some(b=>LOUD[b.type]&&!b.frame)){S.noiseTip=1;log('The dead hunt by sound and light. Running generators, machines, floodlights and gunfire draw them in. Switch things off from the info card to go quiet.','warn');}}
     if(S.t>=DAY){S.night=true;S.t=0;S.warned=false;const n=2+S.day*2+Math.floor(S.pawns.length/3);S.spawnLeft=n;S.spawnN=n;S.spawnT=0;
       log(`Night ${S.day}. ${n} zombies coming in. The crew fall back to the HQ.`,'bad');}
   }else{
@@ -856,10 +904,10 @@ function gridUpdate(){
 function gridTick(dt){
   if(!S._nets)return;const sun=Math.max(0,1-darkness()/.78);let tS=0,tD=0,tC=0,tCap=0,short=false;
   for(const N of S._nets){
-    const dem=N.users.reduce((a,b)=>a+DEF[b.type].use,0),solar=N.solars.length*3*sun,other=N.base+solar;
+    const dem=N.users.reduce((a,b)=>a+(b.off?0:DEF[b.type].use),0),solar=N.solars.length*3*sun,other=N.base+solar;
     let charge=0,cap=0;for(const b of N.bats){b.charge=Math.min(400,b.charge||0);charge+=b.charge;cap+=400;}
     const wantGen=dem>other||charge<cap-1;let gen=0;
-    for(const g of N.gens){g.run=false;if(!wantGen){g.st='idle';continue;}
+    for(const g of N.gens){g.run=false;if(g.off){g.st='off';continue;}if(!wantGen){g.st='idle';continue;}
       if((g.burnT||0)<=0){if((g.fuel||0)>0){g.fuel--;g.burnT=5;}}
       if((g.burnT||0)>0){g.burnT-=dt;g.run=true;SFX('chug',g.x+.5,g.y+.5);g.st='ok';gen+=10;}else g.st='nofuel';}
     const sup=other+gen;let ratio=1;
@@ -1753,15 +1801,26 @@ function drawPawn(p){
     const w=ctx.measureText(p.nm).width;ctx.fillRect(px-w/2-2,py+12,w+4,10);ctx.fillStyle=S.selP===p.id?'#f1c046':'#ebe5cf';ctx.fillText(p.nm,px,py+12.5);}
   if(S.selP===p.id){ctx.strokeStyle='#f1c046';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(px,py,10,0,7);ctx.stroke();}
 }
-function drawZombie(zz){const px=zz.x*T,py=zz.y*T;ctx.globalAlpha=zz.flee?Math.max(0,Math.min(1,zz.fa)):1;
-  ctx.fillStyle='rgba(0,0,0,.4)';ctx.beginPath();ctx.ellipse(px+2,py+4,8,5,0,0,7);ctx.fill();
-  ctx.save();ctx.translate(px,py);ctx.rotate(zz.ang);const lunge=zz.biting?Math.sin(S.clock*14)*2:zz.flee?-6:0;
-  ctx.strokeStyle='#4a5535';ctx.lineWidth=3;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(2,-5);ctx.lineTo(10+lunge,-6);ctx.moveTo(2,5);ctx.lineTo(10+lunge,6);ctx.stroke();
-  ctx.fillStyle='#55613f';ctx.beginPath();ctx.arc(0,0,7,0,7);ctx.fill();ctx.strokeStyle='#222a17';ctx.lineWidth=1.5;ctx.stroke();
-  ctx.fillStyle='#75825a';ctx.beginPath();ctx.arc(3,0,4.5,0,7);ctx.fill();ctx.restore();
-  if(zz.hp<zz.max&&!zz.flee){ctx.fillStyle='#000a';ctx.fillRect(px-8,py-13,16,3);ctx.fillStyle='#d0452f';ctx.fillRect(px-8,py-13,16*Math.max(0,zz.hp/zz.max),3);}
+function drawZombie(zz){const px=zz.x*T,py=zz.y*T,t=ZT[zz.k]||ZT.walker,k=zz.k||'walker',sc=t.r/7;ctx.globalAlpha=zz.flee?Math.max(0,Math.min(1,zz.fa)):1;
+  ctx.fillStyle='rgba(0,0,0,.4)';ctx.beginPath();ctx.ellipse(px+2*sc,py+(k==='crawler'?2:4)*sc,8*sc,5*sc,0,0,7);ctx.fill();
+  ctx.save();ctx.translate(px,py);ctx.rotate(zz.ang);const lunge=zz.biting?Math.sin(S.clock*(k==='brute'?8:14))*2*sc:zz.flee?-6:0;
+  ctx.strokeStyle=t.arm;ctx.lineCap='round';ctx.beginPath();
+  if(k==='crawler'){const sw=Math.sin(S.clock*9+zz.w)*2;ctx.lineWidth=2.5;ctx.moveTo(1,-4);ctx.lineTo(7+sw,-9);ctx.moveTo(1,4);ctx.lineTo(7-sw,9);ctx.moveTo(-3,-4);ctx.lineTo(-7-sw,-8);ctx.moveTo(-3,4);ctx.lineTo(-7+sw,8);}
+  else{ctx.lineWidth=k==='brute'?5.5:k==='runner'?2.5:3;const reach=k==='runner'?13:10;ctx.moveTo(2*sc,-5*sc);ctx.lineTo((reach+lunge)*sc,-6*sc);ctx.moveTo(2*sc,5*sc);ctx.lineTo((reach+lunge)*sc,6*sc);}
+  ctx.stroke();
+  ctx.fillStyle=t.col;ctx.beginPath();if(k==='crawler')ctx.ellipse(0,0,8,5.5,0,0,7);else ctx.arc(0,0,t.r,0,7);ctx.fill();ctx.strokeStyle='#1d2414';ctx.lineWidth=k==='brute'?2:1.5;ctx.stroke();
+  if(k==='brute'){ctx.fillStyle='rgba(0,0,0,.18)';ctx.beginPath();ctx.arc(-3,0,6,0,7);ctx.fill();}
+  ctx.fillStyle=t.head;ctx.beginPath();ctx.arc(k==='crawler'?5:3*sc,0,(k==='crawler'?3.8:4.5)*sc,0,7);ctx.fill();
+  if(k==='screamer'){const o=zz.yell>0?2.4:1;ctx.fillStyle='#1a0d0a';ctx.beginPath();ctx.ellipse(6,0,1.2*o,1.8*o,0,0,7);ctx.fill();}
+  ctx.restore();
+  if(zz.hp<zz.max&&!zz.flee){const w=16*Math.max(1,sc*.9),y=py-(t.r+6);ctx.fillStyle='#000a';ctx.fillRect(px-w/2,y,w,3);ctx.fillStyle='#d0452f';ctx.fillRect(px-w/2,y,w*Math.max(0,zz.hp/zz.max),3);}
   ctx.globalAlpha=1;}
-function lightsFor(b){if(b.frame)return 0;switch(b.type){case 'hq':return 6.5;case 'gen':return b.run?2.2:0;case 'battery':return .9;case 'pole':case 'solar':return 0;case 'flood':return 5.5;case 'tower':return 2.5;case 'flamer':return 2.5;case 'sniper':return 2;case 'mortar':return 2;case 'infirmary':return 2;case 'turret':return 3.5;case 'radio':return 3;case 'bunk':return 2.6;case 'campfire':return 3;case 'cookline':case 'forge':case 'smelter':return 2.2;
+function drawNoise(){const L=S._noise;if(!L)return;const a0=Math.min(1,(darkness()-.2)*2);if(a0<=0)return;
+  for(const s of L){if(s.hq||!vis(s.x,s.y,2))continue;const x=s.x*T+12,y=s.y*T-16,ph=(S.clock*1.6+s.id*.37)%1;
+    ctx.strokeStyle=s.light?`rgba(207,230,255,${a0*.8})`:`rgba(241,192,70,${a0*.85})`;ctx.lineWidth=1.6;
+    const n=s.l>=6?3:2;for(let i=0;i<n;i++){const r=3+((i+ph)%n)*3.2,al=1-((i+ph)%n)/n;ctx.globalAlpha=al;ctx.beginPath();ctx.arc(x,y,r,-.8,.8);ctx.stroke();}
+    ctx.globalAlpha=1;ctx.fillStyle=ctx.strokeStyle;ctx.beginPath();ctx.arc(x-1,y,1.5,0,7);ctx.fill();}}
+function lightsFor(b){if(b.frame||b.off)return 0;switch(b.type){case 'hq':return 6.5;case 'gen':return b.run?2.2:0;case 'battery':return .9;case 'pole':case 'solar':return 0;case 'flood':return 5.5;case 'tower':return 2.5;case 'flamer':return 2.5;case 'sniper':return 2;case 'mortar':return 2;case 'infirmary':return 2;case 'turret':return 3.5;case 'radio':return 3;case 'bunk':return 2.6;case 'campfire':return 3;case 'cookline':case 'forge':case 'smelter':return 2.2;
   case 'belt':case 'wall':case 'steelwall':case 'wire':case 'trap':case 'splitter':case 'sorter':return 0;default:return 1.4;}}
 function darkness(){if(S.night)return .78;if(S.t>DAY-12)return (S.t-(DAY-12))/12*.78;if(S.t<6&&S.day>1)return .78*(1-S.t/6);return 0;}
 
@@ -1773,14 +1832,19 @@ function draw(){
   for(const f of S.fx)if(f.k==='splat'){ctx.globalAlpha=Math.min(1,f.life/f.max*1.5)*.7;ctx.fillStyle='#3d140e';ctx.beginPath();ctx.ellipse(f.x*T,f.y*T,8+f.r*4,6,f.r*3,0,7);ctx.fill();ctx.globalAlpha=1;}
   for(const i in S.des){const n=+i,x=(n%W)*T,y=Math.floor(n/W)*T,k=S.des[i];ctx.strokeStyle=k==='chop'?'rgba(143,181,83,.9)':'rgba(217,119,43,.9)';ctx.lineWidth=1.5;
     ctx.strokeRect(x+3,y+3,T-6,T-6);ctx.fillStyle=ctx.strokeStyle;ctx.beginPath();ctx.moveTo(x+3,y+3);ctx.lineTo(x+11,y+3);ctx.lineTo(x+3,y+11);ctx.fill();}
-  for(const b of S.b){if(!vis(b.x+.5,b.y+.5,2))continue;if(b.frame)drawFrame(b);else drawBuilding(b);}
+  for(const b of S.b){if(!vis(b.x+.5,b.y+.5,2))continue;if(b.frame)drawFrame(b);else{drawBuilding(b);
+    if(b.off){const x=b.x*T,y=b.y*T,w=(b.w||1)*T,h=(b.h||1)*T;ctx.fillStyle='rgba(10,12,8,.35)';ctx.fillRect(x,y,w,h);
+      ctx.fillStyle='rgba(20,22,16,.85)';ctx.beginPath();ctx.arc(x+w-7,y+7,5.5,0,7);ctx.fill();ctx.strokeStyle='#b8b4a2';ctx.lineWidth=1.4;
+      ctx.beginPath();ctx.arc(x+w-7,y+7.5,3,-1.1,4.25);ctx.stroke();ctx.beginPath();ctx.moveTo(x+w-7,y+3.5);ctx.lineTo(x+w-7,y+7);ctx.stroke();}}}
   for(const b of S.b)if(b.item&&vis(b.x,b.y,1)){const it=b.item;let ix=b.x*T+16,iy=b.y*T+16;
     if(b.type==='belt'){ix+=DIRS[b.dir][0]*(it.p-.5)*T;iy+=DIRS[b.dir][1]*(it.p-.5)*T;}drawItem(it.t,ix,iy,4.5);}
   drawGrid();
   const sel=S.sel&&byId(S.sel);
   if(sel){ctx.strokeStyle='#f1c046';ctx.lineWidth=2;ctx.setLineDash([5,4]);ctx.strokeRect(sel.x*T+1,sel.y*T+1,(sel.w||1)*T-2,(sel.h||1)*T-2);
     const r=GUN[sel.type]?GUN[sel.type].r:sel.type==='repair'?4.5:sel.type==='flood'?5:sel.type==='flamer'?2.5:sel.type==='infirmary'?3:sel.type==='tower'?7:0;
-    if(r){const c=ctr(sel);ctx.beginPath();ctx.arc(c[0]*T,c[1]*T,r*T,0,7);ctx.stroke();}ctx.setLineDash([]);}
+    if(r){const c=ctr(sel);ctx.beginPath();ctx.arc(c[0]*T,c[1]*T,r*T,0,7);ctx.stroke();}
+    if(LOUD[sel.type]&&!sel.off){const c=ctr(sel);ctx.strokeStyle=sel.type==='flood'?'rgba(207,230,255,.35)':'rgba(241,192,70,.3)';ctx.setLineDash([2,6]);ctx.beginPath();ctx.arc(c[0]*T,c[1]*T,LOUD[sel.type]*4*T,0,7);ctx.stroke();}
+    ctx.setLineDash([]);}
   for(const p of S.pawns)if(vis(p.x,p.y,1))drawPawn(p);
   for(const zz of S.z)if(vis(zz.x,zz.y,1))drawZombie(zz);
   for(const f of S.fx){const a=f.life/f.max;
@@ -1791,6 +1855,7 @@ function draw(){
     else if(f.k==='shell'){const p=1-a,sx=(f.x1+(f.x2-f.x1)*p)*T,sy=(f.y1+(f.y2-f.y1)*p)*T-Math.sin(p*Math.PI)*T*2.2;ctx.fillStyle='#1b1d16';ctx.beginPath();ctx.arc(sx,sy,3,0,7);ctx.fill();ctx.strokeStyle='#d9772b';ctx.lineWidth=1;ctx.stroke();}
     else if(f.k==='boom'){ctx.fillStyle=`rgba(255,170,70,${a*.7})`;ctx.beginPath();ctx.arc(f.x*T,f.y*T,1.5*T*(1.1-a*.5),0,7);ctx.fill();ctx.strokeStyle=`rgba(255,230,180,${a})`;ctx.lineWidth=2;ctx.stroke();}
     else if(f.k==='flame'){ctx.fillStyle=`rgba(255,${120+a*100|0},40,${a*.85})`;ctx.beginPath();ctx.arc(f.x*T,f.y*T,4+(1-a)*5,0,7);ctx.fill();}
+    else if(f.k==='scream'){ctx.strokeStyle=`rgba(230,210,255,${a*.7})`;ctx.lineWidth=2;for(const m of [1,.6]){ctx.beginPath();ctx.arc(f.x*T,f.y*T,12*T*(1-a)*m+6,0,7);ctx.stroke();}}
     else if(f.k==='puff'){ctx.strokeStyle=`rgba(235,229,207,${a*.6})`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(f.x*T,f.y*T,(f.big?28:14)*(1.2-a),0,7);ctx.stroke();}}
   const dk=darkness();
   if(dk>.01){sctx.setTransform(1,0,0,1,0,0);sctx.globalCompositeOperation='source-over';sctx.clearRect(0,0,shade.width,shade.height);
@@ -1804,8 +1869,9 @@ function draw(){
     ctx.setTransform(1,0,0,1,0,0);ctx.imageSmoothingEnabled=true;ctx.drawImage(shade,0,0,canvas.width,canvas.height);ctx.setTransform(z,0,0,z,-cam.x*z,-cam.y*z);
     const hx=(S.hq.x+1)*T,hy=(S.hq.y+1)*T,g=ctx.createRadialGradient(hx,hy,0,hx,hy,6*T);g.addColorStop(0,`rgba(241,170,60,${.16*dk})`);g.addColorStop(1,'rgba(241,170,60,0)');
     ctx.fillStyle=g;ctx.fillRect(hx-6*T,hy-6*T,12*T,12*T);
-    for(const zz of S.z){if(zz.flee)continue;const c=Math.cos(zz.ang),s=Math.sin(zz.ang),ex=zz.x*T+c*4,ey=zz.y*T+s*4;ctx.fillStyle=`rgba(255,60,40,${Math.min(1,.4+dk)})`;
-      for(const sgn of [-1,1]){ctx.beginPath();ctx.arc(ex-s*2*sgn,ey+c*2*sgn,1.2,0,7);ctx.fill();}}}
+    for(const zz of S.z){if(zz.flee)continue;const sc=(ZT[zz.k]||ZT.walker).r/7,f=zz.k==='crawler'?5.5:4*sc,c=Math.cos(zz.ang),s=Math.sin(zz.ang),ex=zz.x*T+c*f,ey=zz.y*T+s*f;ctx.fillStyle=`rgba(255,60,40,${Math.min(1,.4+dk)})`;
+      for(const sgn of [-1,1]){ctx.beginPath();ctx.arc(ex-s*2*sc*sgn,ey+c*2*sc*sgn,1.2*Math.max(1,sc*.8),0,7);ctx.fill();}}}
+  drawNoise();
   for(const f of S.fx)if(f.k==='float'){const a=f.life/f.max;ctx.globalAlpha=a;ctx.fillStyle=f.c;ctx.font='600 11px "Saira Condensed", sans-serif';ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.fillText(f.txt,f.x*T,f.y*T-(1-a)*14);ctx.globalAlpha=1;}
   if(drag&&drag.rect){const [a,b]=drag.rect;const x0=Math.min(a[0],b[0]),y0=Math.min(a[1],b[1]),x1=Math.max(a[0],b[0]),y1=Math.max(a[1],b[1]);
     ctx.fillStyle=tool==='chop'?'rgba(143,181,83,.15)':'rgba(217,119,43,.15)';ctx.fillRect(x0*T,y0*T,(x1-x0+1)*T,(y1-y0+1)*T);
@@ -1965,7 +2031,7 @@ const MUS=(()=>{let ac=null,master,music,dayG,nightG,sfx,started=false,muted=fal
       o.connect(f);f.connect(g);g.connect(sfx);o.start(t);o.stop(t+1.05);});}
   /* --- sound effects --- */
   const last={},GAP={chop:90,clank:260,hammer:80,built:60,craftPlank:140,craftMeal:220,craftPlate:120,craftAmmo:90,drop:80,gun:45,sniper:120,rifle:55,mortarFire:150,boom:90,
-    flame:160,groan:650,bite:160,thud:130,splat:60,shred:120,crash:150,place:35,error:250,demolish:60,mark:80,click:30,arrive:300,empty:500,chug:420,tick:140};
+    flame:160,groan:650,scream:400,bite:160,thud:130,splat:60,shred:120,crash:150,place:35,error:250,demolish:60,mark:80,click:30,arrive:300,empty:500,chug:420,tick:140};
   let burst=0,burstT=0;
   function out(t,x,y,big){const g=ac.createGain();let vol=1,pan=0;
     if(x!==undefined){const sx=(x*T-cam.x)*cam.z,sy=(y*T-cam.y)*cam.z,m=big?600:220;
@@ -1995,6 +2061,7 @@ const MUS=(()=>{let ac=null,master,music,dayG,nightG,sfx,started=false,muted=fal
     mortarFire:(t,d)=>{tn(t,d,{f:85,f2:38,dur:.28,v:.5});nz(t,d,{f:450,type:'lowpass',dur:.22,v:.25});},
     boom:(t,d)=>{nz(t,d,{f:700,f2:90,type:'lowpass',dur:.75,v:.6,a:.004});tn(t,d,{f:62,f2:28,dur:.6,v:.45});},
     flame:(t,d)=>{nz(t,d,{f:650,f2:400,q:.5,dur:.4,v:.16,a:.06});},
+    scream:(t,d)=>{const f=R(700,900);tn(t,d,{f,f2:f*1.6,type:'sawtooth',dur:.75,v:.05,a:.05,vib:R(9,13)});tn(t,d,{f:f*1.51,f2:f*2.2,type:'square',dur:.6,v:.018,a:.05,vib:11});nz(t,d,{f:2500,q:3,dur:.7,v:.04,a:.08});},
     groan:(t,d)=>{const f=R(85,130);tn(t,d,{f,f2:f*.8,type:'sawtooth',dur:R(.7,1.1),v:.035,a:.15,vib:R(4,7)});nz(t,d,{f:f*4,q:6,dur:.8,v:.02,a:.2});},
     bite:(t,d)=>{nz(t,d,{f:1200,q:2,dur:.1,v:.22});tn(t,d,{f:210,f2:110,dur:.09,v:.12});},
     thud:(t,d)=>{tn(t,d,{f:R(85,105),f2:50,dur:.13,v:.22});nz(t,d,{f:320,type:'lowpass',dur:.08,v:.14});},
@@ -2136,6 +2203,8 @@ function renderDrawer(){
   else{const from=Math.max(0,S.obj-3);
     body.innerHTML=`<div class="guide"><h3>Scrapyard Holdout</h3><h4 style="margin-top:0">How it works</h4><p>You give orders and the crew carry them out. Mark trees and scrap to gather, lay blueprints for builders, and set targets on crafting stations.</p>
       <p>At night everyone falls back to the HQ (or up a Watchtower) and shoots. At dawn each survivor eats one meal; spare meals and a free bed bring new people in. More people unlock more buildings, and at ${TIER[3]} survivors machines and conveyors open up.</p>
+      <h4>Noise, light and the dead</h4><p>Zombies head for the loudest thing they can hear. Running generators and machines, floodlights after dark and every gunshot draw them away from the HQ, so walled-off outposts and switching things off at night both work. Select a building to see how far it carries.</p>
+      <p><b>Runners</b> (day 3+) are fast and fragile. <b>Brutes</b> (day 5+) go for the nearest building and smash walls. <b>Crawlers</b> (day 7+) ignore spikes and wire and slip under turret fire. <b>Screamers</b> (day 9+) pull nearby zombies onto their target, and Sniper Nests shoot them first.</p>
       <h4>Controls</h4><div class="keys"><kbd>1 2 3</kbd><span>Game speed · <kbd>0</kbd> or Space pauses</span><kbd>4</kbd><span>Camp</span><kbd>5</kbd><span>Crafting</span><kbd>6</kbd><span>Defense</span><kbd>7</kbd><span>Machines</span><kbd>8</kbd><span>Power</span>
       <kbd>Q</kbd><span>Select · Esc cancels</span><kbd>C</kbd><span>Chop</span><kbd>V</kbd><span>Scavenge</span><kbd>X</kbd><span>Demolish</span><kbd>R</kbd><span>Rotate (Shift+R back)</span>
       <kbd>F</kbd><span>Fullscreen</span><kbd>M</kbd><span>Music on/off</span><kbd>Tab</kbd><span>This panel</span><kbd>WASD</kbd><span>Pan · wheel or pinch zooms · right-drag pans</span></div>
@@ -2196,7 +2265,7 @@ function ctxTick(){
   const b=S.sel&&byId(S.sel),pw=S.selP&&S.pawns.find(p=>p.id===S.selP),card=$('insp');
   if(!b&&!pw){card.hidden=true;ctxKey='';return;}
   card.hidden=false;
-  const key=pw?`p${pw.id}`:`b${b.id}${b.frame?'f':''}${b.upg?'u':''}${b.type}`;
+  const key=pw?`p${pw.id}`:`b${b.id}${b.frame?'f':''}${b.upg?'u':''}${b.off?'o':''}${b.type}`;
   if(key!==ctxKey){ctxKey=key;
     const close='<button class="x" id="insClose" aria-label="Close">×</button>';
     if(pw){card.innerHTML=`${close}<h2>Crew member</h2><h3>${pw.nm}</h3><div class="hp"><i id="insHp"></i></div><dl class="kv" id="insKv"></dl><div class="btns"><button class="btn" id="insJobs">Jobs…</button></div>`;
@@ -2205,9 +2274,10 @@ function ctxTick(){
       card.innerHTML=`${close}<h2>${b.frame?'Blueprint':D.cat}</h2><h3>${D.n}</h3><p>${D.d}</p><div class="hp"><i id="insHp"></i></div><dl class="kv" id="insKv"></dl>
       ${(D.man||D.auto)&&!b.frame?`<div class="bill">${D.auto?'When crew load it, stop at':'Make until storage has'} <button class="btn" id="billDn" aria-label="Lower target">−</button><b id="billN"></b><button class="btn" id="billUp" aria-label="Raise target">+</button> ${ITEMS[D.rec.out].n.toLowerCase()}</div>`:''}
       ${D.filter?`<div class="filters" id="insF">${IK.map(k=>`<button data-f="${k}"><i style="background:${ITEMS[k].c}"></i>${ITEMS[k].n}</button>`).join('')}</div>`:''}
-      <div class="btns">${D.dir?'<button class="btn" id="insRot">Rotate</button>':''}${b.upg?'<button class="btn" id="insUpgX">Cancel upgrade</button>':''}${b.type!=='hq'?`<button class="btn danger" id="insDel">${b.frame?'Cancel blueprint':'Demolish'}</button>`:''}</div>`;
+      <div class="btns">${LOUD[b.type]&&!b.frame?`<button class="btn" id="insOff">${b.off?'Switch on':'Switch off'}</button>`:''}${D.dir?'<button class="btn" id="insRot">Rotate</button>':''}${b.upg?'<button class="btn" id="insUpgX">Cancel upgrade</button>':''}${b.type!=='hq'?`<button class="btn danger" id="insDel">${b.frame?'Cancel blueprint':'Demolish'}</button>`:''}</div>`;
       card.querySelectorAll('[data-f]').forEach(el=>el.addEventListener('click',()=>{b.filter=el.dataset.f;}));
       if($('insRot'))$('insRot').onclick=()=>{b.dir=(b.dir+1)%4;};
+      if($('insOff'))$('insOff').onclick=()=>{b.off=!b.off;if(b.off)b.run=false;S._nt=0;ctxKey='';say(`${D.n} switched ${b.off?'off':'on'}`,false);};
       if($('insDel'))$('insDel').onclick=()=>{demolish(b);ctxKey='';};
       if($('insUpgX'))$('insUpgX').onclick=()=>{if(b.res){const pp=S.pawns.find(q=>q.id===b.res);if(pp)dropJob(pp);}const uc=DEF[b.upg.to].cost;for(const k in uc)S.stock[k]+=uc[k]-(b.upg.need[k]||0);delete b.upg;ctxKey='';};
       if($('billUp')){$('billUp').onclick=()=>{b.target=tgt(b)+10;};$('billDn').onclick=()=>{b.target=Math.max(0,tgt(b)-10);};}}
@@ -2231,6 +2301,8 @@ function ctxTick(){
       if(b.type==='gen')kv+=`<dt>Fuel</dt><dd>${b.fuel||0} wood${b.run?' · running':''}</dd>`;
       if(b.type==='battery')kv+=`<dt>Charge</dt><dd>${Math.round(b.charge||0)} / 400</dd>`;
       if(b.type==='solar')kv+=`<dt>Output</dt><dd>${(3*Math.max(0,1-darkness()/.78)).toFixed(1)} power</dd>`;}
+    if(LOUD[b.type]){const l=LOUD[b.type],now=noiseNow(b),lt=b.type==='flood',when=lt?'at night':GUN[b.type]||b.type==='flamer'?'when firing':'while running';
+      kv+=`<dt>${lt?'Light':'Noise'}</dt><dd>${b.off?'Switched off, silent':`${lt?'Seen':'Heard'} ${l*4} tiles away ${when}${now?` · <span style="color:#f1c046">${lt?'lit':'loud'} now</span>`:''}`}</dd>`;}
     if(D.dir)kv+=`<dt>Output</dt><dd>${DNAME[b.dir]}</dd>`;
     if(D.auto)kv+=`<dt>Supplied by</dt><dd>${beltFed(b)?(wantsSupply(b)?'Conveyor, crew topping up':'Conveyor'):S.stock[D.rec.out]>=tgt(b)?'Crew (target met, paused)':'Crew, from storage'}</dd>`;
     if(D.auto)kv+=`<dt>Inputs</dt><dd>${Object.keys(D.rec.in).map(k=>`${ITEMS[k].n} ${b.inb[k]||0}/${D.rec.in[k]*4}`).join(' · ')}</dd>`;
